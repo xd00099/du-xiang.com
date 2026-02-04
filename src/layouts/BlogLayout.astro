@@ -50,11 +50,11 @@ const { title, description, date, readTime, author = "Du Xiang", tags = [] } = A
       <article class="blog-article">
         <header class="article-header">
           <div class="article-meta">
-            <span class="author">{author}</span>
-            <span class="separator">·</span>
             <time datetime={date}>{new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
             <span class="separator">·</span>
             <span>{readTime}</span>
+            <span class="separator">|</span>
+            <span class="author">{author}</span>
           </div>
           <h1>{title}</h1>
           <p class="article-description">{description}</p>
