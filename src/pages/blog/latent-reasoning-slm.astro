@@ -5,6 +5,7 @@ const title = "Latent Reasoning: Teaching Small LLMs to Think Without Thinking";
 const description = "How I fine-tuned Mistral 7B to achieve 98% accuracy as a checker behind GPT-4, with 100x latency reduction using a novel training technique where reasoning happens during training but not inference.";
 const date = "2023-12-28";
 const readTime = "12 min read";
+const author = "Du Xiang";
 const tags = ["LLM", "Fine-tuning", "ML Systems", "QLoRA", "Reasoning"];
 
 // Code snippets stored as variables to avoid JSX escaping issues
@@ -191,7 +192,7 @@ score_tokens = [tokenizer.convert_tokens_to_ids(str(i)) for i in range(10)]
 expected_score = sum(i * filtered_probs[score_tokens[i]] for i in range(10))`;
 ---
 
-<BlogLayout title={title} description={description} date={date} readTime={readTime} tags={tags}>
+<BlogLayout title={title} description={description} date={date} readTime={readTime} author={author} tags={tags}>
   <p>
     When building AI products at scale, every millisecond and every token counts. At my previous startup, we were burning through GPT-4 API credits like there was no tomorrow—thousands of dollars per day just to classify customer support conversations. The irony? Most of these classifications were simple binary decisions that a much smaller model could handle.
   </p>

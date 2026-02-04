@@ -4,10 +4,11 @@ interface Props {
   description: string;
   date: string;
   readTime: string;
+  author?: string;
   tags?: string[];
 }
 
-const { title, description, date, readTime, tags = [] } = Astro.props;
+const { title, description, date, readTime, author = "Du Xiang", tags = [] } = Astro.props;
 ---
 
 <!doctype html>
@@ -49,6 +50,8 @@ const { title, description, date, readTime, tags = [] } = Astro.props;
       <article class="blog-article">
         <header class="article-header">
           <div class="article-meta">
+            <span class="author">{author}</span>
+            <span class="separator">·</span>
             <time datetime={date}>{new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
             <span class="separator">·</span>
             <span>{readTime}</span>

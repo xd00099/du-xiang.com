@@ -5,6 +5,7 @@ const title = "Hot-Swappable LoRA: Serving 16 Fine-Tuned Models on a Single GPU"
 const description = "How to serve multiple specialized LLM adapters from one GPU using vLLM's PagedAttention, achieving 10x cost reduction and sub-50ms latency on AWS SageMaker.";
 const date = "2024-03-15";
 const readTime = "15 min read";
+const author = "Du Xiang";
 const tags = ["LLM", "vLLM", "LoRA", "AWS SageMaker", "MLOps"];
 
 // Code snippets
@@ -313,7 +314,7 @@ const codeCostComparison = `# Cost Analysis: Multi-LoRA vs Separate Deployments
 
 ---
 
-<BlogLayout title={title} description={description} date={date} readTime={readTime} tags={tags}>
+<BlogLayout title={title} description={description} date={date} readTime={readTime} author={author} tags={tags}>
   <p>
     Here's a problem I faced at my startup: we had <strong>16 different fine-tuned classifiers</strong> for our customer support AI. Each one detected something different—issue resolution, suspicious messages, requests for human agents, phone claims, and more. The naive solution? Deploy 16 separate GPU instances. The monthly bill? <strong>$17,000+</strong>.
   </p>
