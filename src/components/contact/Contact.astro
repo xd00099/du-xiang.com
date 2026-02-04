@@ -1,0 +1,108 @@
+---
+
+---
+
+<section class="section-lg" id="contact">
+  <div class="container container-narrow">
+    <div class="contact-content fade-in">
+      <p class="label">Get in Touch</p>
+      <h2>Let's work together.</h2>
+      <p class="contact-description">
+        I'm always interested in hearing about new opportunities, exciting projects, or just connecting with fellow builders. Let's chat.
+      </p>
+
+      <div class="contact-actions">
+        <a href="https://www.linkedin.com/in/du-xiang" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+          Connect me thru LinkedIn
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </a>
+      </div>
+
+      <div class="contact-info">
+        <p>Berkeley, CA</p>
+        <span class="divider">·</span>
+        <a href="https://du-xiang.com">du-xiang.com</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .contact-content {
+    text-align: center;
+  }
+
+  .contact-content .label {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: var(--space-4);
+  }
+
+  .contact-content h2 {
+    font-size: clamp(var(--text-4xl), 6vw, var(--text-5xl));
+    margin-bottom: var(--space-6);
+  }
+
+  .contact-description {
+    font-size: var(--text-lg);
+    color: var(--color-text-secondary);
+    max-width: 480px;
+    margin: 0 auto var(--space-10);
+    line-height: 1.7;
+  }
+
+  .contact-actions {
+    display: flex;
+    gap: var(--space-4);
+    justify-content: center;
+    margin-bottom: var(--space-16);
+  }
+
+  .contact-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+  }
+
+  .contact-info a {
+    color: var(--color-text-secondary);
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+
+  .contact-info a:hover {
+    color: var(--color-text);
+  }
+
+  .divider {
+    opacity: 0.3;
+  }
+
+  @media (max-width: 480px) {
+    .contact-actions {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .contact-actions .btn {
+      width: 100%;
+      max-width: 280px;
+    }
+
+    .contact-info {
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .divider {
+      display: none;
+    }
+  }
+</style>

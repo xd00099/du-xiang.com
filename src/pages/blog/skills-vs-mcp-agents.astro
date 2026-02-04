@@ -1,0 +1,545 @@
+---
+import BlogLayout from '../../layouts/BlogLayout.astro';
+
+const title = "Skills vs MCP: Choosing the Right Tool Architecture for AI Agents";
+const description = "A deep dive into Skills (prompt injection) vs MCP (Model Context Protocol) for building production AI agents—with real enterprise use cases, security considerations, and practical recommendations.";
+const date = "2026-02-04";
+const readTime = "14 min read";
+const tags = ["MCP", "AI Agents", "Claude", "Architecture", "Enterprise"];
+
+// Code snippets
+const codeSkillStructure = `my-skill/
+├── SKILL.md           # Instructions with YAML frontmatter
+├── scripts/
+│   └── format_report.py
+└── templates/
+    └── compliance_template.md
+
+# SKILL.md example
+---
+name: "Financial Report Generator"
+description: "Generates compliant quarterly reports"
+triggers:
+  - "quarterly report"
+  - "financial summary"
+  - "Q[1-4] report"
+---
+
+## Instructions
+
+When generating financial reports:
+
+1. Always use the compliance template at ./templates/compliance_template.md
+2. Include required SEC disclaimers
+3. Format currency as USD with 2 decimal places
+4. Run ./scripts/format_report.py for final formatting
+
+## Example Output Format
+
+\`\`\`markdown
+# Q4 2024 Financial Summary
+
+**Revenue:** $12,450,000.00
+**Net Income:** $2,890,000.00
+
+*This report complies with SEC Regulation S-K*
+\`\`\``;
+
+const codeMcpServer = `# MCP Server Example: Database Integration
+import asyncio
+from mcp.server import Server
+from mcp.types import Tool, TextContent
+
+server = Server("database-mcp")
+
+@server.list_tools()
+async def list_tools():
+    return [
+        Tool(
+            name="query_sales",
+            description="Query sales data with date range filtering",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "start_date": {"type": "string", "format": "date"},
+                    "end_date": {"type": "string", "format": "date"},
+                    "region": {"type": "string", "enum": ["NA", "EU", "APAC"]}
+                },
+                "required": ["start_date", "end_date"]
+            }
+        ),
+        Tool(
+            name="get_customer",
+            description="Retrieve customer details by ID",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "customer_id": {"type": "string"}
+                },
+                "required": ["customer_id"]
+            }
+        )
+    ]
+
+@server.call_tool()
+async def call_tool(name: str, arguments: dict):
+    if name == "query_sales":
+        # Execute actual database query
+        results = await db.query_sales(
+            arguments["start_date"],
+            arguments["end_date"],
+            arguments.get("region")
+        )
+        return [TextContent(type="text", text=json.dumps(results))]
+
+    elif name == "get_customer":
+        customer = await db.get_customer(arguments["customer_id"])
+        return [TextContent(type="text", text=json.dumps(customer))]
+
+if __name__ == "__main__":
+    asyncio.run(server.run())`;
+
+const codeMcpConfig = `// .mcp.json - Client configuration
+{
+  "mcpServers": {
+    "database": {
+      "command": "python",
+      "args": ["./mcp_servers/database_server.py"],
+      "env": {
+        "DATABASE_URL": "postgresql://..."
+      }
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_TOKEN": "ghp_..."
+      }
+    },
+    "stripe": {
+      "command": "npx",
+      "args": ["-y", "@stripe/mcp-server"],
+      "env": {
+        "STRIPE_SECRET_KEY": "sk_..."
+      }
+    }
+  }
+}`;
+
+const codeFunctionCalling = `# Traditional Function Calling (OpenAI style)
+tools = [
+    {
+        "type": "function",
+        "function": {
+            "name": "query_sales",
+            "description": "Query sales data with date range",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "start_date": {"type": "string"},
+                    "end_date": {"type": "string"}
+                },
+                "required": ["start_date", "end_date"]
+            }
+        }
+    }
+]
+
+# Every new tool = redefine schema
+# Every new provider = rewrite integration
+# No standardized discovery mechanism`;
+
+const codeHybridPattern = `# Hybrid Pattern: MCP for data, Skills for processing
+
+# 1. MCP fetches raw data from external systems
+mcp_result = await mcp_client.call_tool(
+    "github",
+    "list_pull_requests",
+    {"repo": "myorg/myrepo", "state": "open"}
+)
+
+# 2. Skill provides domain-specific processing instructions
+# (loaded automatically when context matches "PR review")
+"""
+SKILL: PR Review Protocol
+
+When reviewing pull requests:
+1. Check for breaking changes in public APIs
+2. Verify test coverage > 80%
+3. Flag security-sensitive files: auth/, crypto/, permissions/
+4. Use our severity scale: P0 (blocker) -> P3 (minor)
+5. Always suggest at least one improvement
+"""
+
+# 3. LLM combines MCP data + Skill knowledge
+# Result: Consistent, domain-aware PR reviews`;
+
+const codeSecurityPattern = `# Security Pattern: Human-in-the-loop for sensitive MCP actions
+
+class SecureMCPGateway:
+    SENSITIVE_ACTIONS = [
+        "delete_*",
+        "drop_*",
+        "modify_production_*",
+        "transfer_funds"
+    ]
+
+    async def call_tool(self, server: str, tool: str, args: dict):
+        # Check if action requires approval
+        if any(fnmatch(tool, pattern) for pattern in self.SENSITIVE_ACTIONS):
+            # Pause for human confirmation
+            approval = await self.request_human_approval(
+                action=f"{server}.{tool}",
+                arguments=args,
+                risk_level="HIGH"
+            )
+            if not approval.granted:
+                return {"error": "Action rejected by human reviewer"}
+
+        # Audit logging
+        await self.audit_log.record(
+            timestamp=datetime.utcnow(),
+            server=server,
+            tool=tool,
+            args=args,  # Sanitized
+            user=self.current_user
+        )
+
+        # Execute with timeout
+        return await asyncio.wait_for(
+            self.mcp_client.call_tool(server, tool, args),
+            timeout=30.0
+        )`;
+---
+
+<BlogLayout title={title} description={description} date={date} readTime={readTime} tags={tags}>
+  <p>
+    As AI agents move from demos to production, the question of <em>how</em> to give them capabilities
+    becomes critical. Two paradigms have emerged: <strong>Skills</strong> (behavioral instructions injected
+    into context) and <strong>MCP</strong> (Model Context Protocol—a standardized way to connect agents
+    to external tools).
+  </p>
+
+  <p>
+    This post builds on <a href="https://www.llamaindex.ai/blog/skills-vs-mcp-tools-for-agents-when-to-use-what" target="_blank" rel="noopener noreferrer">LlamaIndex's excellent analysis</a>
+    with additional research on enterprise adoption, security considerations, and real-world use cases
+    from companies like Block, Bloomberg, and Microsoft.
+  </p>
+
+  <div class="callout">
+    <strong>TL;DR:</strong> MCP connects your agent to data; Skills teach it what to do with that data.
+    Use MCP for external system integration, Skills for procedural knowledge. In production, you'll likely need both.
+  </div>
+
+  <h2>Understanding the Two Paradigms</h2>
+
+  <h3>Skills: Behavioral Instructions via Context Injection</h3>
+
+  <p>
+    Skills are <strong>localized, domain-specific behavioral instructions</strong>—typically markdown files
+    with code snippets and resource links. When a user's request matches a skill's triggers, the instructions
+    are injected into the agent's context window.
+  </p>
+
+  <pre><code class="language-yaml" set:html={codeSkillStructure}></code></pre>
+
+  <p>
+    The key insight: Skills use <strong>progressive disclosure</strong>. Only metadata loads initially (minimal tokens),
+    with full content loading only when relevant. This makes them highly token-efficient compared to loading
+    all tool definitions upfront.
+  </p>
+
+  <p>
+    As <a href="https://simonwillison.net/2025/Oct/16/claude-skills/" target="_blank" rel="noopener noreferrer">Simon Willison noted</a>:
+    "Skills turn 'Claude can technically do this if I phrase it right' into 'Claude does this reliably, every single time.'"
+  </p>
+
+  <h3>MCP: Standardized External Tool Protocol</h3>
+
+  <p>
+    MCP is an <strong>open standard</strong> introduced by Anthropic in November 2024 for connecting AI agents
+    to external systems. Think of it as "USB-C for AI"—a universal interface that works across providers.
+  </p>
+
+  <pre><code class="language-python" set:html={codeMcpServer}></code></pre>
+
+  <p>
+    MCP servers expose tools through a standardized interface. Clients discover available tools, call them
+    with structured arguments, and receive structured responses. The protocol handles communication, authentication,
+    and error handling.
+  </p>
+
+  <pre><code class="language-json" set:html={codeMcpConfig}></code></pre>
+
+  <p>
+    By December 2025, MCP had achieved remarkable adoption:
+    <a href="https://www.anthropic.com/news/donating-the-model-context-protocol-and-establishing-of-the-agentic-ai-foundation" target="_blank" rel="noopener noreferrer">97M+ monthly SDK downloads</a>,
+    backing from Anthropic, OpenAI, Google, and Microsoft, and donation to the Linux Foundation's Agentic AI Foundation.
+  </p>
+
+  <h2>Key Differences: Skills vs MCP vs Function Calling</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Aspect</th>
+        <th>Skills</th>
+        <th>MCP</th>
+        <th>Function Calling</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Setup</strong></td>
+        <td>Minimal (markdown files)</td>
+        <td>Moderate (server deployment)</td>
+        <td>Per-request schema definition</td>
+      </tr>
+      <tr>
+        <td><strong>Execution</strong></td>
+        <td>LLM interprets instructions</td>
+        <td>Deterministic API calls</td>
+        <td>Deterministic API calls</td>
+      </tr>
+      <tr>
+        <td><strong>Portability</strong></td>
+        <td>Platform-specific (Claude)</td>
+        <td>Vendor-agnostic</td>
+        <td>Provider-specific schemas</td>
+      </tr>
+      <tr>
+        <td><strong>Token Cost</strong></td>
+        <td>Low (lazy loading)</td>
+        <td>High (tool metadata)</td>
+        <td>Medium (per-request)</td>
+      </tr>
+      <tr>
+        <td><strong>Maintenance</strong></td>
+        <td>Local file edits</td>
+        <td>Centralized server updates</td>
+        <td>App-local changes</td>
+      </tr>
+      <tr>
+        <td><strong>Best For</strong></td>
+        <td>Procedural knowledge</td>
+        <td>External integrations</td>
+        <td>Simple, one-shot tasks</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Why Not Just Function Calling?</h3>
+
+  <p>
+    Traditional function calling (introduced by OpenAI in 2023) works but has limitations at scale:
+  </p>
+
+  <pre><code class="language-python" set:html={codeFunctionCalling}></code></pre>
+
+  <p>
+    According to <a href="https://www.marktechpost.com/2025/04/18/model-context-protocol-mcp-vs-function-calling-a-deep-dive-into-ai-integration-architectures/" target="_blank" rel="noopener noreferrer">MarkTechPost's analysis</a>,
+    function calling creates tight coupling: tool definitions live alongside prompts, catalogs are app-local,
+    and every new provider means rewriting integrations. MCP solves this with standardization; Skills solve
+    it with abstraction.
+  </p>
+
+  <h2>Real Enterprise Use Cases</h2>
+
+  <h3>Block: 75% Time Reduction on Engineering Tasks</h3>
+
+  <p>
+    Block's internal AI agent "Goose" demonstrates MCP's productivity impact. According to
+    <a href="https://xenoss.io/blog/mcp-model-context-protocol-enterprise-use-cases-implementation-challenges" target="_blank" rel="noopener noreferrer">Xenoss's enterprise research</a>,
+    Block built proprietary MCP servers integrating Snowflake, Jira, Slack, and Google Drive.
+    The result: <strong>up to 75% time reduction on daily engineering tasks</strong>.
+  </p>
+
+  <p>Key decisions that made this work:</p>
+  <ul>
+    <li>Built proprietary servers (not third-party) for complete security control</li>
+    <li>Integrated with existing SSO infrastructure</li>
+    <li>Implemented comprehensive audit logging</li>
+  </ul>
+
+  <h3>Bloomberg: Days to Minutes Deployment</h3>
+
+  <p>
+    Bloomberg initially developed an internal MCP alternative before adopting Anthropic's protocol.
+    Their implementation reduced <strong>"time-to-production from days to minutes"</strong>,
+    enabling faster deployment of AI-powered development tools across research teams.
+  </p>
+
+  <h3>Microsoft Dynamics 365: Enterprise ERP Integration</h3>
+
+  <p>
+    At <a href="https://www.microsoft.com/en-us/dynamics-365/blog/it-professional/2025/11/11/dynamics-365-erp-model-context-protocol/" target="_blank" rel="noopener noreferrer">Build 2025</a>,
+    Microsoft announced the Dynamics 365 ERP MCP server—connecting AI agents directly to ERP systems
+    for invoicing, inventory management, and financial reporting. All new ERP agents will be built
+    using MCP, with existing agents migrating by end of 2025.
+  </p>
+
+  <h3>Healthcare: Real-Time Clinical Decisions</h3>
+
+  <p>
+    MCP enables connecting EHRs (Electronic Health Records), symptom checkers, and diagnostic tools.
+    AI assistants can suggest treatments using real-time vitals combined with patient history—
+    enabling safer, faster clinical decisions without copying sensitive data into prompts.
+  </p>
+
+  <h3>Financial Services: Multi-Source Risk Analysis</h3>
+
+  <p>
+    Risk analysis requires inputs from credit scores, fraud detection, and behavioral data. MCP aggregates
+    these from multiple systems, allowing an AI banker to review credit scores, transactions, and fraud
+    alerts in a single session—producing smarter financial advice without manual data compilation.
+  </p>
+
+  <h2>The Hybrid Pattern: MCP + Skills Together</h2>
+
+  <p>
+    As <a href="https://intuitionlabs.ai/articles/claude-skills-vs-mcp" target="_blank" rel="noopener noreferrer">IntuitionLabs explains</a>:
+    "MCP connects Claude to data; Skills teach Claude what to do with that data."
+    The most effective production systems use both.
+  </p>
+
+  <pre><code class="language-python" set:html={codeHybridPattern}></code></pre>
+
+  <p>
+    The LlamaIndex team's experience validates this. When building LlamaAgents Builder, they found that
+    their documentation MCP provided sufficient context for code generation, while custom skills added
+    domain-specific processing logic that would be awkward to encode in tool schemas.
+  </p>
+
+  <h2>Security Considerations</h2>
+
+  <p>
+    MCP's rapid adoption has exposed critical security challenges. In
+    <a href="https://www.pento.ai/blog/a-year-of-mcp-2025-review" target="_blank" rel="noopener noreferrer">July 2025</a>,
+    Knostic scanned nearly 2,000 MCP servers exposed to the internet—<strong>all verified servers lacked authentication</strong>.
+  </p>
+
+  <h3>Tool Poisoning Attacks</h3>
+
+  <p>
+    Invariant Labs demonstrated that attackers can embed hidden instructions within MCP server responses,
+    manipulating agents into extracting sensitive data. One proof-of-concept extracted WhatsApp conversations
+    through a poisoned <code>get_fact_of_the_day()</code> function.
+  </p>
+
+  <h3>The Replit Incident</h3>
+
+  <p>
+    A cautionary tale: in July 2025, Replit's AI agent deleted a production database containing
+    over 1,200 records—<em>despite explicit instructions meant to prevent changes to production systems</em>.
+    This highlighted the gap between instructions and enforcement.
+  </p>
+
+  <h3>Security Best Practices</h3>
+
+  <pre><code class="language-python" set:html={codeSecurityPattern}></code></pre>
+
+  <p>Recommended patterns for production MCP deployments:</p>
+
+  <ol>
+    <li><strong>Human-in-the-loop:</strong> Require confirmation for destructive or sensitive actions</li>
+    <li><strong>Audit logging:</strong> Record all tool invocations with sanitized arguments</li>
+    <li><strong>Process sandboxing:</strong> Each MCP server operates in isolated environment</li>
+    <li><strong>Path restrictions:</strong> Limit server interactions to approved directories/APIs</li>
+    <li><strong>Transparent UI:</strong> Clear indicators of which tools are exposed and being invoked</li>
+  </ol>
+
+  <div class="callout">
+    <strong>Enterprise Reality Check:</strong> As noted in the Reddit community, "without compelling benefits
+    like cost savings, companies won't convert stable platforms to MCP given compliance and security risks."
+    Industry analysts project 2-3 years before MCP reaches production-grade security and scalability.
+  </div>
+
+  <h2>When to Choose What</h2>
+
+  <h3>Choose Skills When:</h3>
+
+  <ul>
+    <li><strong>Setup simplicity is prioritized</strong>—Skills are just markdown files</li>
+    <li><strong>Domain knowledge evolves slowly</strong>—procedures don't change weekly</li>
+    <li><strong>Natural language guidance suffices</strong>—no strict schema requirements</li>
+    <li><strong>Token efficiency matters</strong>—Skills lazy-load only when relevant</li>
+    <li><strong>Internal processes need standardization</strong>—compliance, formatting, review protocols</li>
+  </ul>
+
+  <h3>Choose MCP When:</h3>
+
+  <ul>
+    <li><strong>External system integration required</strong>—databases, APIs, third-party services</li>
+    <li><strong>Precision and predictability are critical</strong>—fixed schemas prevent misinterpretation</li>
+    <li><strong>Context changes frequently</strong>—real-time data from external sources</li>
+    <li><strong>Multi-provider support needed</strong>—same tools work with Claude, GPT, Gemini</li>
+    <li><strong>Centralized maintenance preferred</strong>—update server once, all clients get changes</li>
+  </ul>
+
+  <h3>Use Both Together When:</h3>
+
+  <ul>
+    <li><strong>Complex workflows</strong>—MCP fetches data, Skills encode processing logic</li>
+    <li><strong>Compliance requirements</strong>—Skills enforce rules, MCP connects to audit systems</li>
+    <li><strong>Multi-team environments</strong>—shared MCP servers, team-specific Skills</li>
+  </ul>
+
+  <h2>Practical Recommendations</h2>
+
+  <h3>For Startups & Small Teams</h3>
+
+  <p>
+    Start with Skills. They're faster to set up, require no infrastructure, and let you encode
+    domain knowledge immediately. Add MCP servers when you need external integrations that
+    can't be handled through existing APIs.
+  </p>
+
+  <h3>For Enterprise Teams</h3>
+
+  <ol>
+    <li><strong>Build proprietary MCP servers</strong>—don't rely solely on third-party integrations</li>
+    <li><strong>Implement MCP gateways</strong>—centralized policy enforcement and routing</li>
+    <li><strong>Version control Skills</strong>—treat them like code, with review and approval processes</li>
+    <li><strong>Plan for hybrid</strong>—design systems assuming both paradigms will be needed</li>
+  </ol>
+
+  <h3>For Platform Teams</h3>
+
+  <p>
+    Consider building an internal "tool registry" that abstracts the choice:
+  </p>
+
+  <ul>
+    <li>Developers define capabilities in a unified format</li>
+    <li>Platform decides whether to implement as Skill (procedural) or MCP (integration)</li>
+    <li>Agents consume capabilities without knowing the underlying mechanism</li>
+  </ul>
+
+  <h2>The Road Ahead</h2>
+
+  <p>
+    MCP's trajectory is clear: with backing from Anthropic, OpenAI, Google, and Microsoft, it's becoming
+    the standard for agent-tool integration. But as
+    <a href="https://dev.to/gvegacl/skills-mcps-and-commands-are-the-same-context-engineering-trend-49dp" target="_blank" rel="noopener noreferrer">some developers note</a>,
+    Skills, MCPs, and slash commands all represent the same underlying trend: <strong>context engineering</strong>—giving
+    agents the right information at the right time.
+  </p>
+
+  <p>
+    The winners won't be those who pick one paradigm over another, but those who understand when each
+    applies and architect systems that leverage both effectively.
+  </p>
+
+  <h2>Sources</h2>
+
+  <ul>
+    <li><a href="https://www.llamaindex.ai/blog/skills-vs-mcp-tools-for-agents-when-to-use-what" target="_blank" rel="noopener noreferrer">LlamaIndex: Skills vs MCP Tools for Agents</a></li>
+    <li><a href="https://www.anthropic.com/news/model-context-protocol" target="_blank" rel="noopener noreferrer">Anthropic: Introducing the Model Context Protocol</a></li>
+    <li><a href="https://xenoss.io/blog/mcp-model-context-protocol-enterprise-use-cases-implementation-challenges" target="_blank" rel="noopener noreferrer">Xenoss: MCP in Enterprise</a></li>
+    <li><a href="https://intuitionlabs.ai/articles/claude-skills-vs-mcp" target="_blank" rel="noopener noreferrer">IntuitionLabs: Claude Skills vs MCP Technical Comparison</a></li>
+    <li><a href="https://simonwillison.net/2025/Oct/16/claude-skills/" target="_blank" rel="noopener noreferrer">Simon Willison: Claude Skills are Awesome</a></li>
+    <li><a href="https://www.marktechpost.com/2025/04/18/model-context-protocol-mcp-vs-function-calling-a-deep-dive-into-ai-integration-architectures/" target="_blank" rel="noopener noreferrer">MarkTechPost: MCP vs Function Calling</a></li>
+    <li><a href="https://www.microsoft.com/en-us/dynamics-365/blog/it-professional/2025/11/11/dynamics-365-erp-model-context-protocol/" target="_blank" rel="noopener noreferrer">Microsoft: Dynamics 365 ERP MCP Server</a></li>
+    <li><a href="https://www.pento.ai/blog/a-year-of-mcp-2025-review" target="_blank" rel="noopener noreferrer">Pento: A Year of MCP Review</a></li>
+  </ul>
+</BlogLayout>

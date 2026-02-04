@@ -1,0 +1,157 @@
+---
+const experience = [
+  {
+    period: "2025",
+    role: "Lead Founding Engineer",
+    company: "YC-Backed Startup",
+    description: "Scaled $300K → $5M ARR. Built unified data pipelines, workflow systems handling 2M+ executions/month, and LLM-powered automation platform.",
+    type: "work"
+  },
+  {
+    period: "2024 - 2025",
+    role: "Senior ML Engineer",
+    company: "Linqto Inc.",
+    description: "First ML hire. Built agentic RAG systems, generative UI, and AI marketing copilot that increased reach by 300%.",
+    type: "work"
+  },
+  {
+    period: "2023 - 2024",
+    role: "Data Scientist",
+    company: "Simplr.ai (Acquired)",
+    description: "Led vision ML integration. Fine-tuned Mistral/Llama 3, deployed 10+ models on single GPU with 4x inference speedup.",
+    type: "work"
+  },
+  {
+    period: "2022 - 2023",
+    role: "M.Eng in EECS",
+    company: "UC Berkeley",
+    description: "ML and Systems track. Autonomous vehicles research with Zendar.",
+    type: "education"
+  },
+  {
+    period: "2018 - 2022",
+    role: "B.S. in Data Science",
+    company: "UC San Diego",
+    description: "Summa Cum Laude. ML/NLP research at San Diego Supercomputer Center.",
+    type: "education"
+  }
+];
+---
+
+<section class="section" id="work">
+  <div class="container">
+    <div class="work-header fade-in">
+      <p class="label">Experience</p>
+      <h2>Work & Education</h2>
+    </div>
+
+    <div class="work-list">
+      {experience.map((item, i) => (
+        <div class="work-item fade-in" style={`--delay: ${i * 0.05}s`}>
+          <div class="work-meta">
+            <span class="work-period">{item.period}</span>
+            <span class="work-type">{item.type}</span>
+          </div>
+          <div class="work-details">
+            <h3 class="work-role">{item.role}</h3>
+            <p class="work-company">{item.company}</p>
+            <p class="work-description">{item.description}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .work-header {
+    margin-bottom: var(--space-16);
+  }
+
+  .work-header .label {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: var(--space-4);
+  }
+
+  .work-header h2 {
+    font-size: var(--text-4xl);
+  }
+
+  .work-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .work-item {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: var(--space-10);
+    padding: var(--space-8) 0;
+    border-bottom: 1px solid var(--color-border);
+    transition: opacity var(--duration-slow) var(--ease-out);
+    transition-delay: var(--delay);
+  }
+
+  .work-item:first-child {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .work-meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .work-period {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .work-type {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: 9999px;
+    width: fit-content;
+  }
+
+  .work-role {
+    font-size: var(--text-xl);
+    font-weight: 500;
+    margin-bottom: var(--space-1);
+  }
+
+  .work-company {
+    font-size: var(--text-base);
+    color: var(--color-text-secondary);
+    margin: 0 0 var(--space-3);
+  }
+
+  .work-description {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    margin: 0;
+    line-height: 1.6;
+    max-width: 500px;
+  }
+
+  @media (max-width: 640px) {
+    .work-item {
+      grid-template-columns: 1fr;
+      gap: var(--space-4);
+    }
+
+    .work-meta {
+      flex-direction: row;
+      align-items: center;
+      gap: var(--space-4);
+    }
+  }
+</style>

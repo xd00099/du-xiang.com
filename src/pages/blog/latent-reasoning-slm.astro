@@ -1,0 +1,487 @@
+---
+import BlogLayout from '../../layouts/BlogLayout.astro';
+
+const title = "Latent Reasoning: Teaching Small LLMs to Think Without Thinking";
+const description = "How I fine-tuned Mistral 7B to achieve 98% accuracy as a checker behind GPT-4, with 100x latency reduction using a novel training technique where reasoning happens during training but not inference.";
+const date = "2023-12-28";
+const readTime = "12 min read";
+const tags = ["LLM", "Fine-tuning", "ML Systems", "QLoRA", "Reasoning"];
+
+// Code snippets stored as variables to avoid JSX escaping issues
+const codeTrainingData = `# Training data structure
+{
+    "running_message": "Customer: ... Support Agent: ... Customer: I have it now, thank you",
+    "label": "yes",
+    "reason": "the customer has stated 'i have it now' which indicates resolution"
+}
+
+# Combined output format for training
+output = label + ", because in the end, " + reason
+# → "yes, because in the end, the customer has stated 'i have it now' which indicates resolution"`;
+
+const codeGoldStandard = `df = pd.read_csv('./data/issue_resolved_gold_standard_w_reason_new.csv')
+
+# Distribution
+# no:  764 examples
+# yes: 718 examples
+
+# Example entry
+{
+    "running_message": """Customer: Can you help me with my tech issue?
+Support Agent: Hi there! Let's check if Silent Mode is on...
+Customer: I checked and it's off, still not ringing.
+Support Agent: Let's try Do Not Disturb settings...
+Customer: That was it! Working now, thanks!""",
+    "label": "yes",
+    "reason": "the customer explicitly confirms 'Working now' indicating resolution"
+}`;
+
+const codePrompt = `question_prompt = """Take a deep breath and let's think step-by-step.
+Answer "yes" or "no": Is the Customer saying that all of their technical problems have been resolved?
+
+1. Understand the customer's issues so that it's clear if their issues have been answered and resolved.
+2. Analyze the customer's responses: Look for phrases like "it's working now", "problem solved", etc.
+3. Identify keywords indicating problem resolution: Words like "resolved", "fixed", "working", "solved", etc.
+4. Make a decision based on the analysis.
+5. Document the reasoning and decision.
+
+### NOTE:
+- If the customer states that there is nothing else we can help with, answer: "yes"
+- If the customer mentions completion of any intermediate step but not their entire problem, answer: "no"
+- Usually, when a customer just answers "Thanks", "got it", "ok", that doesn't mean resolved → answer "no"
+
+Transcript:
+\`\`\`
+{running_message}
+\`\`\`
+
+The answer is: """`;
+
+const codeFormat = `# Format the complete training example
+df['out_w_reason'] = df['label'] + ', because in the end, ' + df['reason']
+
+# Apply chat template
+chat = [{"role": "system", "content": filled_prompt}]
+input_text = tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt=True)
+
+# Final format:
+# <|im_start|>system
+# [prompt with transcript]
+# <|im_end|>
+# <|im_start|>assistant
+# yes, because in the end, the customer has confirmed the issue is resolved.<|im_end|>`;
+
+const codeQLoRA = `from peft import LoraConfig, prepare_model_for_kbit_training, get_peft_model
+from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
+
+# 4-bit quantization config
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_quant_type="nf4",
+    bnb_4bit_compute_dtype=torch.bfloat16,
+    bnb_4bit_use_double_quant=False,
+)
+
+# LoRA configuration - target all attention + MLP layers
+peft_config = LoraConfig(
+    lora_alpha=64,
+    lora_dropout=0.05,
+    r=32,                    # rank
+    bias="none",
+    task_type="CAUSAL_LM",
+    target_modules=[
+        "q_proj", "k_proj", "v_proj", "o_proj",  # attention
+        "gate_proj", "up_proj", "down_proj",      # MLP
+        "lm_head",                                # output
+    ],
+)
+
+# Only train on completions (not the prompt)
+response_template = "<|im_start|>assistant\\n"
+collator = DataCollatorForCompletionOnlyLM(response_template, tokenizer=tokenizer)
+
+# Training arguments
+training_arguments = TrainingArguments(
+    output_dir="./results",
+    num_train_epochs=2,
+    per_device_train_batch_size=1,
+    gradient_accumulation_steps=8,
+    learning_rate=5e-5,
+    lr_scheduler_type="constant",
+    optim="paged_adamw_8bit",
+    bf16=True,
+)
+
+# SFT Trainer with NEFTune noise for better generalization
+trainer = SFTTrainer(
+    model=model,
+    train_dataset=dataset,
+    peft_config=peft_config,
+    dataset_text_field="text",
+    max_seq_length=4096,
+    tokenizer=tokenizer,
+    data_collator=collator,
+    args=training_arguments,
+    neftune_noise_alpha=5  # Adds noise to embeddings during training
+)`;
+
+const codeInference = `def run_inference(input_text):
+    generation_config = GenerationConfig(
+        max_new_tokens=1,          # Only generate ONE token
+        do_sample=False,
+        use_cache=True,
+        num_beams=1,
+        eos_token_id=tokenizer.eos_token_id,
+    )
+
+    inputs = tokenizer(input_text, return_tensors="pt").to(device)
+    outputs = model.generate(
+        **inputs,
+        output_scores=True,        # Get logits
+        generation_config=generation_config,
+        return_dict_in_generate=True
+    )
+
+    # Extract probabilities from the first (only) generated token
+    probs = torch.stack(outputs.scores, dim=1).softmax(-1).cpu()
+    filtered_probs = np.array(probs).flatten()
+
+    # Aggregate probabilities across token variants
+    # "yes" can be tokenized as: "yes", " yes", "Yes", " Yes"
+    yes_token_ids = [9780, 5081, 5592, 5613]
+    no_token_ids = [708, 1510, 1770, 4032, 2501]
+
+    yes_prob = np.sum(filtered_probs[yes_token_ids])
+    no_prob = np.sum(filtered_probs[no_token_ids])
+
+    # Normalize and decide
+    total = yes_prob + no_prob
+    yes_normalized = yes_prob / total
+    no_normalized = no_prob / total
+
+    return "yes" if yes_normalized > no_normalized else "no", max(yes_normalized, no_normalized)`;
+
+const codeTokens = `# Finding all token variants
+tokenizer.convert_tokens_to_ids(['yes', '▁yes', '▁Yes', 'Yes'])
+# → [9780, 5081, 5592, 5613]
+
+tokenizer.convert_tokens_to_ids(['▁no', 'no', '▁No', 'NO', 'No'])
+# → [708, 1510, 1770, 4032, 2501]`;
+
+const codeRouting = `# Production routing logic
+answer, confidence = run_inference(conversation)
+
+if confidence > 0.95:
+    return answer  # High confidence, use SLM result
+else:
+    return gpt4_classify(conversation)  # Low confidence, escalate to GPT-4`;
+
+const codeMulticlass = `# Train on: "category_a, because [reasoning]"
+# Aggregate probabilities for each category's token variants
+categories = {
+    "billing": [tok_ids_for_billing_variants],
+    "technical": [tok_ids_for_technical_variants],
+    "general": [tok_ids_for_general_variants],
+}
+probs = {cat: sum(filtered_probs[ids]) for cat, ids in categories.items()}`;
+
+const codeScoring = `# Train on: "8, because the response quality is good but..."
+# Use probability distribution across digit tokens [0-9]
+score_tokens = [tokenizer.convert_tokens_to_ids(str(i)) for i in range(10)]
+expected_score = sum(i * filtered_probs[score_tokens[i]] for i in range(10))`;
+---
+
+<BlogLayout title={title} description={description} date={date} readTime={readTime} tags={tags}>
+  <p>
+    When building AI products at scale, every millisecond and every token counts. At my previous startup, we were burning through GPT-4 API credits like there was no tomorrow—thousands of dollars per day just to classify customer support conversations. The irony? Most of these classifications were simple binary decisions that a much smaller model could handle.
+  </p>
+
+  <p>
+    The challenge wasn't accuracy—it was getting a small model to <em>reason</em> as well as GPT-4 without the latency and cost overhead of chain-of-thought prompting. This led me to develop what I call <strong>"Latent Reasoning"</strong>: a training technique where the model learns to reason during training, but that reasoning is compressed into the answer token probabilities during inference.
+  </p>
+
+  <p>
+    The result? <strong>98% accuracy on a complex classification task, with inference generating only a single token.</strong> Let me show you how it works.
+  </p>
+
+  <h2>The Problem: LLM Inference is Expensive</h2>
+
+  <p>
+    We had a customer support AI that needed to determine when a conversation should be escalated to a human agent. The key signal: <em>"Is the customer saying that their technical problem has been resolved?"</em>
+  </p>
+
+  <p>
+    Sounds simple, right? But consider these edge cases:
+  </p>
+
+  <ul>
+    <li><strong>"Thanks, got it"</strong> — Does this mean resolved? (Usually no, just acknowledging a step)</li>
+    <li><strong>"I found it"</strong> — Found what? The phone? The setting? Need context.</li>
+    <li><strong>"Perfect!"</strong> — Could mean resolved, could mean understood instructions</li>
+    <li><strong>"I have it now, thank you"</strong> — This one is actually resolved</li>
+  </ul>
+
+  <p>
+    GPT-4 with chain-of-thought prompting handled these nuances beautifully—but at 100+ output tokens per classification, we were looking at:
+  </p>
+
+  <ul>
+    <li><strong>~500ms latency</strong> per classification</li>
+    <li><strong>$0.003-0.01</strong> per request</li>
+    <li><strong>Rate limiting issues</strong> at scale</li>
+  </ul>
+
+  <p>
+    We needed a solution that could run locally, cost nearly nothing, and still capture the <em>reasoning</em> that made GPT-4 so good at this task.
+  </p>
+
+  <h2>The Insight: Reasoning as Probability Compression</h2>
+
+  <p>
+    Here's the key observation that led to the breakthrough:
+  </p>
+
+  <div class="callout insight">
+    <div class="callout-title">Key Insight</div>
+    <p>
+      When a language model generates chain-of-thought reasoning, the reasoning tokens <em>condition</em> the final answer token. But what if we could compress all that reasoning into the answer token's probability distribution directly?
+    </p>
+  </div>
+
+  <p>
+    Traditional approaches to training small models on classification tasks use one of two methods:
+  </p>
+
+  <ol>
+    <li><strong>Direct answer training:</strong> Train on <code>input → "yes"</code> or <code>input → "no"</code></li>
+    <li><strong>Chain-of-thought distillation:</strong> Train on <code>input → "reasoning... therefore yes"</code></li>
+  </ol>
+
+  <p>
+    Method 1 is fast at inference but loses reasoning capability. Method 2 preserves reasoning but requires generating 50-100+ tokens at inference time.
+  </p>
+
+  <p>
+    <strong>Latent Reasoning flips the script:</strong> We train on <code>input → "yes, because [reasoning]"</code> but at inference, we only generate the first token and use its probability as our answer.
+  </p>
+
+  <h2>The Training Data: Labels + Reasoning</h2>
+
+  <p>
+    The magic starts with how we structure the training data. Each example contains:
+  </p>
+
+  <pre><code class="language-python" set:html={codeTrainingData}></code></pre>
+
+  <p>
+    This format is critical. The model learns to:
+  </p>
+
+  <ol>
+    <li>Output the answer token first (<code>yes</code> or <code>no</code>)</li>
+    <li>Follow with reasoning that <em>justifies</em> that answer</li>
+  </ol>
+
+  <p>
+    During training, the cross-entropy loss backpropagates through the entire sequence. The answer token learns to encode information about the upcoming reasoning—creating what I call <strong>compressed reasoning</strong>.
+  </p>
+
+  <h2>Data Preparation: The 1,500 Label Journey</h2>
+
+  <p>
+    High-quality training data was crucial. Here's how we built the dataset:
+  </p>
+
+  <h3>Step 1: Gold Standard Labeling</h3>
+
+  <p>
+    We manually labeled ~1,500 customer support conversation endings with binary labels and explanations:
+  </p>
+
+  <pre><code class="language-python" set:html={codeGoldStandard}></code></pre>
+
+  <h3>Step 2: Prompt Engineering</h3>
+
+  <p>
+    The input prompt guides the model's reasoning process:
+  </p>
+
+  <pre><code class="language-python" set:html={codePrompt}></code></pre>
+
+  <h3>Step 3: Format for Training</h3>
+
+  <p>
+    Using the ChatML format for Mistral-OpenOrca:
+  </p>
+
+  <pre><code class="language-python" set:html={codeFormat}></code></pre>
+
+  <h2>Fine-Tuning with QLoRA</h2>
+
+  <p>
+    We used QLoRA (Quantized Low-Rank Adaptation) to fine-tune Mistral 7B efficiently on a single A10G GPU:
+  </p>
+
+  <pre><code class="language-python" set:html={codeQLoRA}></code></pre>
+
+  <p>
+    Key training stats:
+  </p>
+
+  <ul>
+    <li><strong>Trainable parameters:</strong> 85M (1.16% of 7.3B total)</li>
+    <li><strong>Training time:</strong> ~2 hours on A10G</li>
+    <li><strong>VRAM usage:</strong> ~13GB</li>
+  </ul>
+
+  <h2>The Inference Trick: Single Token Generation</h2>
+
+  <p>
+    Here's where the magic happens. At inference time, we only generate <strong>one token</strong> and extract probabilities:
+  </p>
+
+  <pre><code class="language-python" set:html={codeInference}></code></pre>
+
+  <div class="callout tip">
+    <div class="callout-title">Why This Works</div>
+    <p>
+      The model was trained to output <code>yes, because...</code> or <code>no, because...</code>. During training, the answer token had to "commit" to an answer that would be consistent with the reasoning that follows. This forces the model to compress its reasoning into the probability distribution of that first token.
+    </p>
+  </div>
+
+  <h2>Token Aggregation: Handling Tokenization Variance</h2>
+
+  <p>
+    One critical detail: the same word can be tokenized differently depending on context:
+  </p>
+
+  <pre><code class="language-python" set:html={codeTokens}></code></pre>
+
+  <p>
+    The <code>▁</code> prefix indicates the token includes a leading space (SentencePiece tokenization). By aggregating probabilities across all variants, we capture the model's full "belief" in each answer.
+  </p>
+
+  <h2>Results: 98% Accuracy at 100x Speed</h2>
+
+  <p>
+    The numbers speak for themselves:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Metric</th>
+        <th>GPT-4 + CoT</th>
+        <th>Mistral 7B + Latent Reasoning</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Accuracy</td>
+        <td>~99%</td>
+        <td><strong>98.2%</strong></td>
+      </tr>
+      <tr>
+        <td>Output Tokens</td>
+        <td>100-150</td>
+        <td><strong>1</strong></td>
+      </tr>
+      <tr>
+        <td>Latency</td>
+        <td>~500ms</td>
+        <td><strong>~20ms</strong></td>
+      </tr>
+      <tr>
+        <td>Cost per 1M requests</td>
+        <td>$3,000-10,000</td>
+        <td><strong>$0 (self-hosted)</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    We also get a <strong>confidence score</strong> for free—the normalized probability. This enables smart routing:
+  </p>
+
+  <pre><code class="language-python" set:html={codeRouting}></code></pre>
+
+  <h2>Why "Latent" Reasoning?</h2>
+
+  <p>
+    I call this technique "Latent Reasoning" because:
+  </p>
+
+  <ol>
+    <li><strong>The reasoning exists</strong> — the model learned to reason during training</li>
+    <li><strong>The reasoning is hidden</strong> — it's encoded in token probabilities, not generated text</li>
+    <li><strong>The reasoning influences output</strong> — answer probabilities reflect reasoning quality</li>
+  </ol>
+
+  <p>
+    It's analogous to how humans develop intuition: we don't consciously reason through every decision, but our quick judgments are informed by past reasoning experiences.
+  </p>
+
+  <h2>Extending the Technique</h2>
+
+  <p>
+    This approach generalizes beyond binary classification:
+  </p>
+
+  <h3>Multi-class Classification</h3>
+
+  <pre><code class="language-python" set:html={codeMulticlass}></code></pre>
+
+  <h3>Scoring/Ranking</h3>
+
+  <pre><code class="language-python" set:html={codeScoring}></code></pre>
+
+  <h2>Lessons Learned</h2>
+
+  <h3>1. Reasoning Order Matters</h3>
+
+  <p>
+    Training on <code>answer, reasoning</code> works better than <code>reasoning, answer</code> for this technique. The model needs to "commit" to the answer first.
+  </p>
+
+  <h3>2. Quality Over Quantity</h3>
+
+  <p>
+    1,500 high-quality examples with good reasoning outperformed 10,000 examples with labels only.
+  </p>
+
+  <h3>3. Token Variant Aggregation is Critical</h3>
+
+  <p>
+    Without aggregating across tokenization variants, accuracy dropped by ~5%.
+  </p>
+
+  <h3>4. Confidence Calibration</h3>
+
+  <p>
+    The confidence scores are well-calibrated—low confidence predictions are genuinely harder cases.
+  </p>
+
+  <h2>Conclusion</h2>
+
+  <p>
+    Latent Reasoning bridges the gap between expensive, slow chain-of-thought models and fast but naive classifiers. By teaching the model to reason during training and compressing that reasoning into single-token probabilities, we get the best of both worlds.
+  </p>
+
+  <p>
+    The technique is particularly powerful for:
+  </p>
+
+  <ul>
+    <li>High-volume classification tasks</li>
+    <li>Latency-sensitive applications</li>
+    <li>Cost-constrained deployments</li>
+    <li>Cases where explainability isn't required at inference time</li>
+  </ul>
+
+  <p>
+    Connect me on LinkedIn if you want the full training notebook. If you're building AI products at scale, I'd love to hear how you're solving similar challenges—<a href="/#contact">reach out</a>!
+  </p>
+
+  <hr />
+
+</BlogLayout>

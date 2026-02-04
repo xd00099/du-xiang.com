@@ -1,0 +1,282 @@
+/* ==========================================
+   Design System - Clean & Modern (OpenAI-inspired)
+   ========================================== */
+
+:root {
+  /* Colors - Minimal Dark Theme */
+  --color-bg: #000000;
+  --color-bg-subtle: #0a0a0a;
+  --color-bg-elevated: #111111;
+  --color-border: rgba(255, 255, 255, 0.08);
+
+  /* Text Colors - High Contrast */
+  --color-text: #ffffff;
+  --color-text-secondary: rgba(255, 255, 255, 0.6);
+  --color-text-muted: rgba(255, 255, 255, 0.4);
+
+  /* Accent - Single, Subtle */
+  --color-accent: #10a37f;
+  --color-accent-hover: #1a7f64;
+
+  /* Typography - Clean Sans */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Type Scale - Larger, Bolder */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 2rem;
+  --text-4xl: 2.5rem;
+  --text-5xl: 3.5rem;
+  --text-6xl: 4.5rem;
+  --text-7xl: 6rem;
+
+  /* Spacing - Generous */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+  --space-32: 8rem;
+  --space-40: 10rem;
+
+  /* Layout */
+  --container-max: 1100px;
+  --container-narrow: 800px;
+  --container-padding: clamp(1.5rem, 5vw, 3rem);
+  --sidebar-width: 72px;
+
+  /* Transitions */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 150ms;
+  --duration-base: 300ms;
+  --duration-slow: 500ms;
+}
+
+/* ==========================================
+   Reset & Base
+   ========================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  overflow-x: hidden;
+}
+
+/* ==========================================
+   Typography - Clean & Bold
+   ========================================== */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+h1 { font-size: clamp(var(--text-5xl), 8vw, var(--text-7xl)); }
+h2 { font-size: clamp(var(--text-4xl), 5vw, var(--text-5xl)); }
+h3 { font-size: var(--text-3xl); }
+h4 { font-size: var(--text-2xl); }
+
+p {
+  line-height: 1.7;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ==========================================
+   Layout
+   ========================================== */
+
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 var(--container-padding);
+}
+
+.container-narrow {
+  max-width: var(--container-narrow);
+}
+
+.section {
+  padding: var(--space-32) 0;
+  margin-left: var(--sidebar-width);
+}
+
+.section-lg {
+  padding: var(--space-40) 0;
+  margin-left: var(--sidebar-width);
+}
+
+@media (max-width: 768px) {
+  .section,
+  .section-lg {
+    margin-left: 0;
+    padding-top: var(--space-20);
+  }
+}
+
+/* ==========================================
+   Buttons - Minimal
+   ========================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  transition: all var(--duration-base) var(--ease-out);
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+
+.btn-primary:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  padding: var(--space-2) var(--space-4);
+}
+
+.btn-ghost:hover {
+  color: var(--color-text);
+}
+
+/* ==========================================
+   Cards - Clean
+   ========================================== */
+
+.card {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all var(--duration-base) var(--ease-out);
+}
+
+.card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ==========================================
+   Animations - Subtle
+   ========================================== */
+
+.fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity var(--duration-slow) var(--ease-out),
+              transform var(--duration-slow) var(--ease-out);
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ==========================================
+   Utility
+   ========================================== */
+
+.text-center { text-align: center; }
+.text-muted { color: var(--color-text-muted); }
+.text-secondary { color: var(--color-text-secondary); }
+
+.mt-4 { margin-top: var(--space-4); }
+.mt-6 { margin-top: var(--space-6); }
+.mt-8 { margin-top: var(--space-8); }
+.mb-4 { margin-bottom: var(--space-4); }
+.mb-6 { margin-bottom: var(--space-6); }
+.mb-8 { margin-bottom: var(--space-8); }
+
+/* ==========================================
+   Selection & Scrollbar
+   ========================================== */
+
+::selection {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ==========================================
+   Reduced Motion
+   ========================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  html { scroll-behavior: auto; }
+}

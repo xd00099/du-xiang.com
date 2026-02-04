@@ -1,0 +1,641 @@
+---
+import BlogLayout from '../../layouts/BlogLayout.astro';
+
+const title = "Hot-Swappable LoRA: Serving 16 Fine-Tuned Models on a Single GPU";
+const description = "How to serve multiple specialized LLM adapters from one GPU using vLLM's PagedAttention, achieving 10x cost reduction and sub-50ms latency on AWS SageMaker.";
+const date = "2024-03-15";
+const readTime = "15 min read";
+const tags = ["LLM", "vLLM", "LoRA", "AWS SageMaker", "MLOps"];
+
+// Code snippets
+const codeHfModelLoad = `def model_fn(model_dir):
+    model_path = f'{model_dir}/'
+
+    # Load base model with Flash Attention 2
+    model = AutoModelForCausalLM.from_pretrained(
+        model_path,
+        torch_dtype=torch.bfloat16,
+        device_map={'': 0},
+        attn_implementation="flash_attention_2"
+    )
+
+    # Load first adapter and wrap with PeftModel
+    model = PeftModel.from_pretrained(
+        model,
+        model_path + "issueResolved",
+        adapter_name="issueResolved",
+        device_map={"": 0}
+    )
+
+    # Load additional adapters (they share the base model!)
+    model.load_adapter(model_path + "isMessageWeird", adapter_name="isMessageWeird")
+    model.load_adapter(model_path + "isPhoneClaim", adapter_name="isPhoneClaim")
+    model.load_adapter(model_path + "requireExternalAccess", adapter_name="requireExternalAccess")
+    model.load_adapter(model_path + "askingForAgent", adapter_name="askingForAgent")
+    model.load_adapter(model_path + "customerNotUnderstanding", adapter_name="customerNotUnderstanding")
+    # ... load up to 15+ adapters
+
+    model.eval()
+    return model`;
+
+const codeHfPredict = `def predict_fn(inputs, model):
+    tokenized = tokenizer(inputs['input_text'], return_tensors="pt").to(device)
+
+    # Hot-swap to the requested adapter
+    if inputs.get("adapter_name"):
+        model.set_adapter(inputs['adapter_name'])  # Instant switch!
+        outputs = model.generate(**tokenized, output_scores=True, ...)
+    else:
+        # Use base model without any adapter
+        with model.disable_adapter():
+            outputs = model.generate(**tokenized, output_scores=True, ...)
+
+    # Extract predictions and confidence
+    probs = torch.stack(outputs.scores, dim=1).softmax(-1)
+    # ... aggregate probabilities
+
+    return [{"confidence_score": confidence, "predicted_text": prediction}]`;
+
+const codeVllmInit = `from vllm import LLM, SamplingParams
+from vllm.lora.request import LoRARequest
+
+# Initialize vLLM with LoRA support
+llm = LLM(
+    model='./deployment_vllm',
+    tokenizer='./deployment_vllm',
+    enable_lora=True,        # Enable LoRA support
+    max_model_len=8000,      # Max sequence length
+    max_lora_rank=32,        # Max LoRA rank across all adapters
+    max_loras=16             # Max concurrent LoRA adapters
+)
+
+# Create LoRA request objects (just metadata, not loaded yet)
+lora_issue_resolved = LoRARequest(
+    'issueResolved',           # Adapter name
+    1,                         # Unique ID
+    lora_local_path='./deployment_vllm/issueResolved/'
+)
+
+lora_message_weird = LoRARequest(
+    'isMessageWeird',
+    2,
+    lora_local_path='./deployment_vllm/isMessageWeird/'
+)
+
+# ... create 14 more LoRARequest objects`;
+
+const codeVllmPredict = `def predict_fn(inputs, model):
+    input_text = inputs.get("input_text")
+    adapter_name = inputs.get("adapter_name")
+
+    sampling_params = SamplingParams(
+        temperature=0,
+        max_tokens=1,      # Single token for classification
+        logprobs=1         # Get log probabilities
+    )
+
+    if adapter_name:
+        # Get the corresponding LoRARequest
+        lora_adapter = prompt2adapter[adapter_name]['adapter']
+
+        # vLLM handles the adapter loading/switching internally!
+        out = model.generate(
+            input_text,
+            lora_request=lora_adapter,  # Pass adapter per-request
+            sampling_params=sampling_params
+        )
+    else:
+        # Base model inference
+        out = model.generate(input_text, sampling_params=sampling_params)
+
+    predicted_text = out[0].outputs[0].text
+    confidence = math.exp(out[0].outputs[0].cumulative_logprob)
+
+    return [{"confidence_score": confidence, "predicted_text": predicted_text}]`;
+
+const codePagedAttention = `# Traditional attention: Contiguous KV cache per sequence
+# Memory layout: [seq1_full_kv | seq2_full_kv | seq3_full_kv]
+# Problem: Fragmentation when sequences have different lengths
+
+# PagedAttention: Virtual memory for KV cache
+# Memory layout: Fixed-size blocks that can be allocated anywhere
+#
+# Logical view (per sequence):
+#   Sequence 1: [Block 0] -> [Block 3] -> [Block 7]
+#   Sequence 2: [Block 1] -> [Block 4]
+#   Sequence 3: [Block 2] -> [Block 5] -> [Block 8] -> [Block 9]
+#
+# Physical memory: Blocks stored non-contiguously
+# [B0|B1|B2|B3|B4|B5|B6|B7|B8|B9|...]
+#
+# Benefits:
+# 1. Near-zero fragmentation (~4% waste vs ~60% in naive approach)
+# 2. Dynamic allocation - sequences grow/shrink freely
+# 3. Memory sharing - same prompt = same blocks (copy-on-write)`;
+
+const codeVllmLoraArch = `# How vLLM handles LoRA adapters internally:
+
+# 1. Base model weights are loaded once (frozen)
+base_weight = model.layers[i].self_attn.q_proj.weight  # Shape: [hidden, hidden]
+
+# 2. LoRA adapters stored separately per adapter
+lora_A = adapter.layers[i].self_attn.q_proj.lora_A    # Shape: [rank, hidden]
+lora_B = adapter.layers[i].self_attn.q_proj.lora_B    # Shape: [hidden, rank]
+
+# 3. Forward pass with LoRA:
+# output = input @ base_weight.T + (input @ lora_A.T @ lora_B.T) * scaling
+#
+# The LoRA matrices are MUCH smaller:
+# - Base: 4096 x 4096 = 16.7M params
+# - LoRA (rank=32): (32 x 4096) + (4096 x 32) = 262K params (64x smaller!)
+
+# 4. vLLM's optimization: Batched LoRA computation
+# Multiple requests with different adapters can be batched together
+# GPU kernels handle the per-request adapter selection efficiently`;
+
+const codeSagemakerScript = `# inference.py - SageMaker entry point
+
+import logging
+import json
+from vllm import LLM, SamplingParams
+from vllm.lora.request import LoRARequest
+
+logger = logging.getLogger(__name__)
+
+# Global state
+llm = None
+prompt2adapter = {}
+
+def model_fn(model_dir):
+    """Called once when the endpoint starts"""
+    global llm, prompt2adapter
+
+    model_path = f'{model_dir}/'
+
+    # Initialize all LoRA adapters
+    adapters = [
+        ('issueResolved', 1),
+        ('isMessageWeird', 2),
+        ('isPhoneClaim', 3),
+        ('requireExternalAccess', 4),
+        ('isSwitchingIssues', 5),
+        ('tryingToManipulate', 6),
+        ('askingForAgent', 7),
+        ('customerNotUnderstanding', 8),
+        ('askingAboutOtherDevice', 9),
+        ('haveEnoughInfo', 10),
+        ('nextStepsRelevant', 11),
+        ('isReadyForNextStep', 12),
+        ('isSameReco', 13),
+        ('isAppropriateAgent', 14),
+        ('isHowToQuestion', 15),
+        ('isPhoneDevice', 16),
+    ]
+
+    for name, id in adapters:
+        lora = LoRARequest(name, id, lora_local_path=f'{model_path}{name}/')
+        prompt2adapter[name] = {'adapter': lora}
+
+    # Initialize vLLM engine
+    llm = LLM(
+        model=model_path,
+        tokenizer=model_path,
+        enable_lora=True,
+        max_model_len=8000,
+        max_lora_rank=32
+    )
+
+    logger.info('vLLM engine loaded with 16 LoRA adapters')
+    return llm
+
+def input_fn(json_request_data, content_type='application/json'):
+    """Parse incoming request"""
+    return json.loads(json_request_data)
+
+def predict_fn(inputs, model):
+    """Run inference with the specified adapter"""
+    # ... (implementation shown above)
+
+def output_fn(output, accept='application/json'):
+    """Format response"""
+    return json.dumps(output), accept`;
+
+const codeSagemakerDeploy = `import sagemaker
+from sagemaker.huggingface import HuggingFaceModel
+
+role = sagemaker.get_execution_role()
+
+# Create HuggingFace Model with custom inference script
+huggingface_model = HuggingFaceModel(
+    model_data='s3://my-bucket/model-artifacts/mistral-7b-multi-lora.tar.gz',
+    role=role,
+    transformers_version='4.37.0',
+    pytorch_version='2.1.0',
+    py_version='py310',
+    entry_point='inference_vllm.py',           # Our custom script
+    source_dir='./code',                        # Directory with inference code
+    model_server_workers=1,                     # vLLM manages its own parallelism
+
+    # Environment variables for vLLM
+    env={
+        'VLLM_ATTENTION_BACKEND': 'FLASH_ATTN',
+        'CUDA_VISIBLE_DEVICES': '0',
+    }
+)
+
+# Deploy to real-time endpoint
+predictor = huggingface_model.deploy(
+    instance_type='ml.g5.2xlarge',    # 24GB VRAM - fits 7B + 16 adapters
+    initial_instance_count=1,
+    endpoint_name='mistral-7b-multi-lora'
+)`;
+
+const codeSagemakerInvoke = `import boto3
+import json
+
+runtime = boto3.client('sagemaker-runtime')
+
+def classify_conversation(conversation_text, task_type):
+    """
+    Classify a conversation using the appropriate adapter.
+
+    task_type options:
+    - 'issueResolved': Is the customer's issue resolved?
+    - 'isMessageWeird': Is this message suspicious/weird?
+    - 'askingForAgent': Is customer asking for human agent?
+    - ... (14 more classifiers)
+    """
+
+    payload = {
+        'input_text': format_prompt(conversation_text, task_type),
+        'adapter_name': task_type
+    }
+
+    response = runtime.invoke_endpoint(
+        EndpointName='mistral-7b-multi-lora',
+        ContentType='application/json',
+        Body=json.dumps(payload)
+    )
+
+    result = json.loads(response['Body'].read().decode())
+    return result[0]  # {'confidence_score': 0.98, 'predicted_text': 'yes'}
+
+# Example usage - run multiple classifiers on same conversation
+conversation = "Customer: Thanks, that fixed it! Agent: Great to hear..."
+
+results = {
+    'issue_resolved': classify_conversation(conversation, 'issueResolved'),
+    'asking_for_agent': classify_conversation(conversation, 'askingForAgent'),
+    'is_phone_claim': classify_conversation(conversation, 'isPhoneClaim'),
+}`;
+
+const codeCostComparison = `# Cost Analysis: Multi-LoRA vs Separate Deployments
+
+# Option A: Separate endpoint per classifier (traditional approach)
+# ----------------------------------------------------------------
+# 16 classifiers × ml.g5.2xlarge ($1.515/hr) = $24.24/hr
+# Monthly cost: $24.24 × 24 × 30 = $17,452.80
+
+# Option B: Single endpoint with hot-swappable LoRA (our approach)
+# ----------------------------------------------------------------
+# 1 × ml.g5.2xlarge ($1.515/hr) = $1.515/hr
+# Monthly cost: $1.515 × 24 × 30 = $1,090.80
+
+# SAVINGS: $16,362/month (93.7% reduction!)
+
+# Latency comparison (P50):
+# - Separate endpoints: ~50ms (includes cold adapter load)
+# - Multi-LoRA vLLM: ~20ms (adapters pre-loaded, just switch)
+
+# Throughput comparison (requests/sec on single instance):
+# - HuggingFace PEFT: ~15 req/s
+# - vLLM with LoRA: ~45 req/s (3x faster)`;
+
+---
+
+<BlogLayout title={title} description={description} date={date} readTime={readTime} tags={tags}>
+  <p>
+    Here's a problem I faced at my startup: we had <strong>16 different fine-tuned classifiers</strong> for our customer support AI. Each one detected something different—issue resolution, suspicious messages, requests for human agents, phone claims, and more. The naive solution? Deploy 16 separate GPU instances. The monthly bill? <strong>$17,000+</strong>.
+  </p>
+
+  <p>
+    There had to be a better way. And there was: <strong>hot-swappable LoRA adapters</strong>. By serving all 16 classifiers from a single GPU, we cut our costs by 93% while actually <em>improving</em> latency. Here's how.
+  </p>
+
+  <h2>The Multi-Classifier Problem</h2>
+
+  <p>
+    Our AI support agent needed to make multiple real-time decisions during every conversation:
+  </p>
+
+  <ul>
+    <li><strong>Issue Resolution Detection:</strong> Has the customer's problem been solved?</li>
+    <li><strong>Escalation Detection:</strong> Is the customer asking for a human agent?</li>
+    <li><strong>Fraud Detection:</strong> Is someone trying to manipulate the system?</li>
+    <li><strong>Phone Claim Detection:</strong> Is this a device warranty claim?</li>
+    <li><strong>Topic Switching:</strong> Did the customer change subjects mid-conversation?</li>
+    <li>...and 11 more specialized classifiers</li>
+  </ul>
+
+  <p>
+    Each classifier was a fine-tuned Mistral 7B model with its own specialized training data. Traditional deployment would mean:
+  </p>
+
+  <ul>
+    <li><strong>16 GPU instances</strong> running 24/7</li>
+    <li><strong>~$1,500/month per instance</strong> (ml.g5.2xlarge on AWS)</li>
+    <li><strong>Complex routing logic</strong> to hit the right endpoint</li>
+    <li><strong>Network latency</strong> for each classifier call</li>
+  </ul>
+
+  <h2>The LoRA Solution: One Base Model, Many Adapters</h2>
+
+  <p>
+    <a href="https://arxiv.org/abs/2106.09685" target="_blank">LoRA (Low-Rank Adaptation)</a> works by freezing the base model and training small "adapter" matrices. These adapters are tiny—typically <strong>0.1-1% of the base model size</strong>. A 7B parameter model with a rank-32 LoRA adapter adds only ~85MB of weights.
+  </p>
+
+  <div class="callout insight">
+    <div class="callout-title">Key Insight</div>
+    <p>
+      Since adapters are small, we can load <strong>many adapters into GPU memory simultaneously</strong> and switch between them at inference time. The base model (7B parameters) stays loaded once; only the adapter weights (85MB each) change per request.
+    </p>
+  </div>
+
+  <p>
+    With 16 adapters at 85MB each, we add only 1.36GB to our memory footprint. A 24GB GPU can easily handle the 7B base model (~14GB in bfloat16) plus all adapters with room to spare for KV cache.
+  </p>
+
+  <h2>Implementation #1: HuggingFace PEFT</h2>
+
+  <p>
+    The simplest approach uses HuggingFace's PEFT library. Here's the model loading code:
+  </p>
+
+  <pre><code class="language-python" set:html={codeHfModelLoad}></code></pre>
+
+  <p>
+    The key insight: we call <code>load_adapter()</code> for each specialized model, but they all share the same base weights. Inference then looks like this:
+  </p>
+
+  <pre><code class="language-python" set:html={codeHfPredict}></code></pre>
+
+  <p>
+    The <code>set_adapter()</code> call is nearly instantaneous—it just switches which adapter matrices are used in the forward pass. No model reloading, no memory reallocation.
+  </p>
+
+  <h3>HuggingFace Limitations</h3>
+
+  <p>
+    This approach works, but has some drawbacks:
+  </p>
+
+  <ul>
+    <li><strong>Sequential processing:</strong> Can't batch requests with different adapters</li>
+    <li><strong>Stateful:</strong> The "current adapter" is model state, complicating concurrent requests</li>
+    <li><strong>Suboptimal KV cache:</strong> Standard attention implementation</li>
+    <li><strong>~15 requests/second</strong> throughput on g5.2xlarge</li>
+  </ul>
+
+  <h2>Implementation #2: vLLM (3x Faster)</h2>
+
+  <p>
+    <a href="https://github.com/vllm-project/vllm" target="_blank">vLLM</a> is a high-throughput inference engine that supports LoRA natively. It solves all the HuggingFace limitations:
+  </p>
+
+  <pre><code class="language-python" set:html={codeVllmInit}></code></pre>
+
+  <p>
+    Notice the key parameters: <code>max_loras=16</code> tells vLLM to reserve space for 16 concurrent adapters, and <code>max_lora_rank=32</code> sets the maximum rank across all adapters.
+  </p>
+
+  <p>
+    Inference is cleaner—we pass the adapter as a parameter rather than mutating state:
+  </p>
+
+  <pre><code class="language-python" set:html={codeVllmPredict}></code></pre>
+
+  <p>
+    This is <strong>stateless</strong>—each request specifies its own adapter, enabling proper concurrent processing.
+  </p>
+
+  <h2>How vLLM Achieves 3x Throughput: PagedAttention</h2>
+
+  <p>
+    vLLM's secret weapon is <strong>PagedAttention</strong>, a novel attention algorithm inspired by virtual memory in operating systems. To understand why it matters, we need to understand the KV cache problem.
+  </p>
+
+  <h3>The KV Cache Problem</h3>
+
+  <p>
+    During autoregressive generation, transformers cache the Key and Value tensors from previous tokens to avoid recomputation. This KV cache grows with sequence length and can consume massive memory:
+  </p>
+
+  <ul>
+    <li><strong>Mistral 7B, 8K context:</strong> ~2GB KV cache per sequence</li>
+    <li><strong>Batch of 10 sequences:</strong> ~20GB just for KV cache</li>
+  </ul>
+
+  <p>
+    Traditional implementations allocate contiguous memory per sequence. When sequences have different lengths, this creates <strong>severe fragmentation</strong>—up to 60% of GPU memory can be wasted on padding.
+  </p>
+
+  <h3>PagedAttention: Virtual Memory for LLMs</h3>
+
+  <pre><code class="language-text" set:html={codePagedAttention}></code></pre>
+
+  <p>
+    PagedAttention divides the KV cache into fixed-size <strong>blocks</strong> (typically 16 tokens each). Sequences don't need contiguous memory—they just maintain a list of block pointers. This provides:
+  </p>
+
+  <ol>
+    <li><strong>Near-zero fragmentation:</strong> Blocks are uniform size, ~4% waste vs ~60%</li>
+    <li><strong>Dynamic allocation:</strong> Sequences grow by acquiring new blocks</li>
+    <li><strong>Memory sharing:</strong> Identical prefixes share blocks (copy-on-write)</li>
+    <li><strong>Better batching:</strong> More sequences fit in memory = higher throughput</li>
+  </ol>
+
+  <h3>Continuous Batching</h3>
+
+  <p>
+    Traditional batching waits for all sequences in a batch to complete before starting new ones. vLLM uses <strong>continuous batching</strong>: as soon as one sequence finishes, a new request immediately takes its slot. This eliminates idle time and maximizes GPU utilization.
+  </p>
+
+  <h3>Optimized LoRA Kernels</h3>
+
+  <p>
+    vLLM implements custom CUDA kernels that can process <strong>multiple LoRA adapters in a single batch</strong>:
+  </p>
+
+  <pre><code class="language-python" set:html={codeVllmLoraArch}></code></pre>
+
+  <p>
+    The key optimization: requests with <em>different</em> adapters can still be batched together. The kernel applies the appropriate adapter per-token based on the request metadata. This is why vLLM achieves 3x the throughput of HuggingFace.
+  </p>
+
+  <h2>Deploying on AWS SageMaker</h2>
+
+  <p>
+    SageMaker provides a clean interface for deploying custom inference logic. Here's the complete inference script structure:
+  </p>
+
+  <pre><code class="language-python" set:html={codeSagemakerScript}></code></pre>
+
+  <p>
+    Deployment uses SageMaker's HuggingFace container with our custom inference script:
+  </p>
+
+  <pre><code class="language-python" set:html={codeSagemakerDeploy}></code></pre>
+
+  <h3>Model Artifact Structure</h3>
+
+  <p>
+    The model tarball uploaded to S3 has this structure:
+  </p>
+
+  <pre><code class="language-text">{`mistral-7b-multi-lora.tar.gz
+├── config.json                    # Base model config
+├── tokenizer.json                 # Tokenizer files
+├── model.safetensors              # Base model weights (14GB)
+├── issueResolved/
+│   ├── adapter_config.json        # LoRA config (rank, alpha, etc.)
+│   └── adapter_model.safetensors  # LoRA weights (~85MB)
+├── isMessageWeird/
+│   ├── adapter_config.json
+│   └── adapter_model.safetensors
+├── isPhoneClaim/
+│   └── ...
+└── ... (14 more adapter directories)`}</code></pre>
+
+  <h3>Invoking the Endpoint</h3>
+
+  <pre><code class="language-python" set:html={codeSagemakerInvoke}></code></pre>
+
+  <p>
+    Each request specifies which adapter to use via the <code>adapter_name</code> parameter. The endpoint handles the routing internally—no need for complex API gateway logic.
+  </p>
+
+  <h2>Cost Analysis: 93% Savings</h2>
+
+  <pre><code class="language-python" set:html={codeCostComparison}></code></pre>
+
+  <p>
+    The numbers are striking: <strong>$16,362/month in savings</strong> by consolidating 16 endpoints into one. And we're not sacrificing performance—we're actually <em>gaining</em> it through vLLM's optimizations.
+  </p>
+
+  <h2>Production Considerations</h2>
+
+  <h3>1. Adapter Loading Strategy</h3>
+
+  <p>
+    vLLM can lazy-load adapters on first use or preload them all at startup. For latency-sensitive applications, preloading is essential:
+  </p>
+
+  <pre><code class="language-python">{`# Force preload all adapters at startup
+for adapter in prompt2adapter.values():
+    # Dummy request to trigger loading
+    _ = llm.generate("test", lora_request=adapter['adapter'],
+                     sampling_params=SamplingParams(max_tokens=1))`}</code></pre>
+
+  <h3>2. Handling High Concurrency</h3>
+
+  <p>
+    vLLM handles concurrent requests with different adapters gracefully, but there's a limit based on <code>max_loras</code>. If you exceed this, requests will queue. Monitor the <code>num_requests_waiting</code> metric in production.
+  </p>
+
+  <h3>3. Memory Planning</h3>
+
+  <p>
+    Budget GPU memory carefully:
+  </p>
+
+  <ul>
+    <li><strong>Base model:</strong> ~14GB (7B params × 2 bytes in bfloat16)</li>
+    <li><strong>LoRA adapters:</strong> ~85MB each × 16 = ~1.4GB</li>
+    <li><strong>KV cache:</strong> Remaining memory (shared across requests)</li>
+    <li><strong>Buffer:</strong> ~1GB for CUDA overhead</li>
+  </ul>
+
+  <p>
+    On a 24GB GPU, this leaves ~7GB for KV cache, supporting roughly 30-40 concurrent 4K-token sequences.
+  </p>
+
+  <h3>4. A/B Testing Adapters</h3>
+
+  <p>
+    Hot-swappable adapters make A/B testing trivial. Deploy both versions as different adapters and route traffic by including the adapter name in your request:
+  </p>
+
+  <pre><code class="language-python">{`# A/B test between v1 and v2 of issue resolution model
+adapter = 'issueResolved_v2' if random.random() < 0.1 else 'issueResolved_v1'
+result = classify_conversation(text, adapter)`}</code></pre>
+
+  <h2>Benchmarks: Real-World Performance</h2>
+
+  <p>
+    On a production workload of 3,000 customer support conversations across all 14 active classifiers:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Metric</th>
+        <th>HuggingFace PEFT</th>
+        <th>vLLM</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>P50 Latency</td>
+        <td>45ms</td>
+        <td><strong>18ms</strong></td>
+      </tr>
+      <tr>
+        <td>P99 Latency</td>
+        <td>120ms</td>
+        <td><strong>42ms</strong></td>
+      </tr>
+      <tr>
+        <td>Throughput</td>
+        <td>15 req/s</td>
+        <td><strong>45 req/s</strong></td>
+      </tr>
+      <tr>
+        <td>Memory Usage</td>
+        <td>18.2GB</td>
+        <td><strong>15.8GB</strong></td>
+      </tr>
+      <tr>
+        <td>Accuracy</td>
+        <td>97.2%</td>
+        <td><strong>97.2%</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    vLLM delivers <strong>2.5x lower latency</strong> and <strong>3x higher throughput</strong> with identical accuracy. The memory savings come from PagedAttention's efficient KV cache management.
+  </p>
+
+  <h2>Conclusion</h2>
+
+  <p>
+    Hot-swappable LoRA adapters are a game-changer for multi-model LLM deployments. The combination of:
+  </p>
+
+  <ul>
+    <li><strong>LoRA's parameter efficiency</strong> (85MB per specialized model)</li>
+    <li><strong>vLLM's PagedAttention</strong> (3x throughput improvement)</li>
+    <li><strong>SageMaker's managed infrastructure</strong> (easy deployment and scaling)</li>
+  </ul>
+
+  <p>
+    ...enables serving dozens of specialized models from a single GPU at a fraction of the traditional cost. For us, it meant <strong>$16,000/month in savings</strong> and <strong>faster</strong> inference.
+  </p>
+
+  <p>
+    If you're running multiple fine-tuned models in production, this architecture should be your default. The days of "one GPU per model" are over.
+  </p>
+
+  <hr />
+
+</BlogLayout>

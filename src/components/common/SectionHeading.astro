@@ -1,0 +1,69 @@
+---
+interface Props {
+  title: string;
+  subtitle?: string;
+  watermark?: string;
+  centered?: boolean;
+}
+
+const { title, subtitle, watermark, centered = true } = Astro.props;
+---
+
+<div class:list={["section-heading", { centered }]}>
+  {watermark && <span class="watermark">{watermark}</span>}
+  <h2 class="title">{title}</h2>
+  {subtitle && <p class="subtitle">{subtitle}</p>}
+</div>
+
+<style>
+  .section-heading {
+    position: relative;
+    margin-bottom: var(--space-12);
+  }
+
+  .section-heading.centered {
+    text-align: center;
+  }
+
+  .watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: clamp(4rem, 15vw, 10rem);
+    font-weight: 800;
+    color: var(--color-bg-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+    z-index: 0;
+  }
+
+  .section-heading:not(.centered) .watermark {
+    left: 0;
+    transform: translate(0, -50%);
+  }
+
+  .title {
+    position: relative;
+    z-index: 1;
+    font-size: var(--text-3xl);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-4);
+  }
+
+  .subtitle {
+    position: relative;
+    z-index: 1;
+    font-size: var(--text-base);
+    color: var(--color-text-tertiary);
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .section-heading:not(.centered) .subtitle {
+    margin: 0;
+  }
+</style>

@@ -1,0 +1,959 @@
+---
+import BlogLayout from '../../layouts/BlogLayout.astro';
+
+const title = "From Prompt Engineering to Context Engineering: Building Intelligent Memory Systems";
+const description = "The paradigm shift from prompt engineering to context engineering, why XML outperforms JSON for LLM structured data, and how progressive disclosure transforms memory management for AI agents.";
+const date = "2025-08-07";
+const readTime = "16 min read";
+const tags = ["Context Engineering", "Memory", "LLM", "AI Agents", "Architecture"];
+
+// Code snippets stored as variables to avoid JSX escaping issues
+const codeFlatMemory = `{
+  "llm_txt": "<company_context>
+    Company: Skyline Roofing Solutions
+    Industry: Roofing Contractor
+    Address: 1250 Harbor View Drive, Tampa, FL
+    Phone: +18135550142
+    Email: mrodriguez@skylineroofing.com
+    Annual Revenue: $500,000
+    Employees: 4 full-time
+    ...
+  </company_context>
+
+  <events_timeline>
+    <total_events>68</total_events>
+
+    <event index='1'>
+      <type>Phone</type>
+      <timestamp>2025-12-04T13:44:58.765000+00:00</timestamp>
+      <summary>Discussion about claims made policy...</summary>
+      <content>[Full 2000-word transcript]</content>
+    </event>
+
+    <event index='2'>
+      <type>Email</type>
+      <timestamp>2025-12-03T09:15:22.000000+00:00</timestamp>
+      <sender>sarah@acmeinsurance.com</sender>
+      <recipient>mrodriguez@skylineroofing.com</recipient>
+      <content>[Full email body + attachments]</content>
+      <attachments count='3'>
+        <attachment index='1'>
+          <filename>Quote_GL_2025.pdf</filename>
+          [Full PDF content extracted]
+        </attachment>
+        ...
+      </attachments>
+    </event>
+
+    <!-- 66 more events with full content... -->
+  </events_timeline>
+}"
+
+// Total: ~132KB, ~16,000 words, ~46,000 tokens`;
+
+const codeLayeredMemory = `# Layer 0: Company Context (always loaded)
+<company_context>
+  <name>Skyline Roofing Solutions</name>
+  <industry>Roofing Contractor - Residential/Commercial</industry>
+  <location>Tampa, FL</location>
+  <contact>Marcus Rodriguez (+18135550142)</contact>
+  <financials>
+    <revenue>$500,000</revenue>
+    <payroll>$300,000</payroll>
+  </financials>
+  <insurance_needs>General Liability, Workers Comp</insurance_needs>
+</company_context>
+
+# Layer 1: Events Index (summaries only)
+<events_index total="68">
+  <event id="evt_001" type="phone" date="2025-12-04">
+    Claims made policy discussion - awaiting quotes
+  </event>
+  <event id="evt_002" type="email" date="2025-12-03">
+    GL quote documents sent (3 attachments)
+  </event>
+  <event id="evt_003" type="document" date="2025-12-02">
+    Certificate of Insurance uploaded
+  </event>
+  <!-- Summaries only, ~50 tokens each vs ~500+ for full content -->
+</events_index>
+
+# Layer 2+: On-demand via Memory MCP
+# LLM can request: get_event_detail(evt_001)
+# Returns full transcript/content only when needed`;
+
+const codeMemoryMCP = `from mcp.server import Server
+from mcp.types import Tool, TextContent
+import json
+
+server = Server("customer-memory-mcp")
+
+@server.list_tools()
+async def list_tools():
+    return [
+        Tool(
+            name="get_customer_summary",
+            description="Get high-level customer context and event index",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "customer_id": {"type": "string"}
+                },
+                "required": ["customer_id"]
+            }
+        ),
+        Tool(
+            name="get_event_detail",
+            description="Retrieve full content of a specific event",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "event_id": {"type": "string"},
+                    "include_attachments": {"type": "boolean", "default": False}
+                },
+                "required": ["event_id"]
+            }
+        ),
+        Tool(
+            name="search_events",
+            description="Search events by keyword, type, or date range",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string"},
+                    "event_type": {"type": "string", "enum": ["phone", "email", "document", "note"]},
+                    "date_from": {"type": "string", "format": "date"},
+                    "date_to": {"type": "string", "format": "date"}
+                }
+            }
+        ),
+        Tool(
+            name="get_document_content",
+            description="Extract and return content from a specific document/attachment",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "document_id": {"type": "string"},
+                    "extract_type": {"type": "string", "enum": ["full", "summary", "key_points"]}
+                },
+                "required": ["document_id"]
+            }
+        )
+    ]
+
+@server.call_tool()
+async def call_tool(name: str, arguments: dict):
+    if name == "get_customer_summary":
+        # Returns ~2KB: company context + event summaries
+        summary = await memory_store.get_summary(arguments["customer_id"])
+        return [TextContent(type="text", text=json.dumps(summary))]
+
+    elif name == "get_event_detail":
+        # Returns full event content only when explicitly requested
+        event = await memory_store.get_event(
+            arguments["event_id"],
+            include_attachments=arguments.get("include_attachments", False)
+        )
+        return [TextContent(type="text", text=json.dumps(event))]
+
+    elif name == "search_events":
+        # Returns matching event summaries, not full content
+        results = await memory_store.search(
+            query=arguments.get("query"),
+            event_type=arguments.get("event_type"),
+            date_range=(arguments.get("date_from"), arguments.get("date_to"))
+        )
+        return [TextContent(type="text", text=json.dumps(results))]
+
+    elif name == "get_document_content":
+        # Extracts PDF/document content on demand
+        content = await document_store.extract(
+            arguments["document_id"],
+            extract_type=arguments.get("extract_type", "summary")
+        )
+        return [TextContent(type="text", text=content)]`;
+
+const codeXMLvsJSON = `# JSON: Flat, ambiguous boundaries
+{
+  "instruction": "Analyze this contract",
+  "context": "Client is a roofing contractor...",
+  "contract": "AGREEMENT entered into...",
+  "example": "Previous analysis showed..."
+}
+
+# XML: Clear semantic boundaries, nestable
+<task>
+  <instruction>
+    Analyze this contract for liability risks.
+    Focus on indemnification and insurance clauses.
+  </instruction>
+
+  <context>
+    <client_profile>
+      Roofing contractor, 25 years in business,
+      $500K revenue, 4 employees
+    </client_profile>
+    <risk_factors>
+      High-risk industry, hurricane zone,
+      uses subcontractors
+    </risk_factors>
+  </context>
+
+  <contract>
+    AGREEMENT entered into this 4th day of December...
+    [Full contract text]
+  </contract>
+
+  <output_format>
+    <findings>List each risk with severity rating</findings>
+    <recommendations>Actionable next steps</recommendations>
+  </output_format>
+</task>`;
+
+const codeAgentWorkflow = `# Progressive Disclosure in Action
+
+# Step 1: Agent receives query
+query = "What insurance quotes has Marcus received?"
+
+# Step 2: Load Layer 0 (always in context) - ~500 tokens
+context = """
+<company_context>
+  Skyline Roofing Solutions | Tampa, FL
+  Contact: Marcus Rodriguez | Seeking GL Insurance
+</company_context>
+"""
+
+# Step 3: Agent calls Memory MCP to explore
+events = await mcp.call("search_events", {
+    "query": "quote",
+    "event_type": "email"
+})
+
+# Returns summaries (~200 tokens):
+# - evt_002: GL quote from Coastal Insurance ($4,200/yr)
+# - evt_015: Quote from SafeGuard Agency ($3,800/yr)
+# - evt_031: Updated quote with hurricane coverage
+
+# Step 4: Agent decides which events need detail
+detail = await mcp.call("get_event_detail", {
+    "event_id": "evt_002",
+    "include_attachments": True
+})
+
+# Only NOW loads full content (~2,000 tokens)
+
+# Step 5: Agent synthesizes answer from relevant data only
+# Total tokens used: ~2,700 vs ~46,000 for flat approach
+# Savings: 94% fewer tokens, faster response, less noise`;
+
+const codeCompactionStrategy = `# Compaction: Summarizing when approaching context limits
+
+class ContextManager:
+    def __init__(self, max_tokens=100000):
+        self.max_tokens = max_tokens
+        self.working_memory = []
+        self.compressed_history = []
+
+    async def add_interaction(self, interaction):
+        self.working_memory.append(interaction)
+
+        if self.estimate_tokens() > self.max_tokens * 0.8:
+            await self.compact()
+
+    async def compact(self):
+        # Preserve: architectural decisions, key facts, user preferences
+        # Discard: verbose outputs, intermediate reasoning, duplicates
+
+        summary = await llm.summarize(
+            self.working_memory,
+            preserve=[
+                "decisions",
+                "customer_preferences",
+                "policy_details",
+                "action_items"
+            ],
+            discard=[
+                "greetings",
+                "acknowledgments",
+                "intermediate_calculations"
+            ]
+        )
+
+        self.compressed_history.append(summary)
+        self.working_memory = self.working_memory[-5:]  # Keep recent
+
+    def get_context(self):
+        return {
+            "compressed_history": self.compressed_history,
+            "recent_interactions": self.working_memory,
+            "customer_summary": self.customer_context  # Layer 0
+        }`;
+---
+
+<BlogLayout title={title} description={description} date={date} readTime={readTime} tags={tags}>
+  <article class="blog-content">
+
+    <section class="intro">
+      <p class="lead">
+        In July 2025, Gartner declared: <em>"Context engineering is in, and prompt engineering is out."</em>
+        This wasn't just analyst hype—it reflected a fundamental shift in how production AI systems are built.
+        While prompt engineering focused on crafting clever instructions, context engineering treats the entire
+        information environment as a designable system.
+      </p>
+
+      <p>
+        This post explores three interconnected ideas: the paradigm shift from prompts to context, why XML
+        structures outperform JSON for LLM communication, and how progressive disclosure transforms memory
+        management from a token-burning liability into a strategic advantage.
+      </p>
+    </section>
+
+    <section>
+      <h2>The Shift: From Prompt Engineering to Context Engineering</h2>
+
+      <p>
+        <strong>Prompt engineering</strong> was the craft of tweaking input phrasing to coax better outputs.
+        "Maybe if I say 'step by step' the model will reason better." It was necessary, but ultimately limited—
+        you can't prompt your way out of missing information.
+      </p>
+
+      <p>
+        <strong>Context engineering</strong> is the discipline of designing systems that provide the right
+        information, in the right format, at the right time. It encompasses:
+      </p>
+
+      <ul>
+        <li><strong>System prompts</strong> that set behavioral boundaries</li>
+        <li><strong>Tool definitions</strong> that extend model capabilities</li>
+        <li><strong>Retrieved knowledge</strong> from RAG and vector databases</li>
+        <li><strong>Memory systems</strong> that persist across sessions</li>
+        <li><strong>Dynamic context</strong> loaded based on task requirements</li>
+      </ul>
+
+      <blockquote>
+        "Most agent failures are not model failures anymore—they are context failures."
+        <cite>— Anthropic Engineering</cite>
+      </blockquote>
+
+      <p>
+        The insight is that LLMs have finite <em>attention budgets</em>. Research on "context rot" shows that
+        as token counts increase, recall accuracy degrades. The goal isn't to stuff more information in—it's
+        to curate the <em>smallest set of high-signal tokens</em> that maximize success probability.
+      </p>
+    </section>
+
+    <section>
+      <h2>Why XML Beats JSON for LLM Structured Data</h2>
+
+      <p>
+        When building memory systems, format matters more than you'd expect. Here's a real example from an
+        insurance brokerage CRM—customer memory in <code>llm.txt</code> format:
+      </p>
+
+      <div class="code-comparison">
+        <h3>The Format Question</h3>
+        <pre><code class="language-text">{codeXMLvsJSON}</code></pre>
+      </div>
+
+      <h3>Why XML Wins for Claude (and Most LLMs)</h3>
+
+      <p>
+        Claude was specifically trained with XML tags in inputs and outputs. Controlled studies across 10,000+
+        prompts found that <strong>XML-scaffolded prompts achieved 23% higher accuracy</strong> on mathematical
+        reasoning tasks compared to JSON.
+      </p>
+
+      <div class="benefits-grid">
+        <div class="benefit-card">
+          <h4>Semantic Clarity</h4>
+          <p>Tags like <code>&lt;instruction&gt;</code>, <code>&lt;context&gt;</code>, and <code>&lt;output_format&gt;</code>
+          eliminate ambiguity about what's being asked vs. what's reference material.</p>
+        </div>
+
+        <div class="benefit-card">
+          <h4>Hierarchical Nesting</h4>
+          <p>XML naturally represents nested structures—a customer with events, each event with attachments,
+          each attachment with metadata. JSON requires awkward array indexing.</p>
+        </div>
+
+        <div class="benefit-card">
+          <h4>Parseability</h4>
+          <p>When Claude outputs XML, post-processing is trivial. Extract <code>&lt;findings&gt;</code> and
+          <code>&lt;recommendations&gt;</code> separately for different downstream uses.</p>
+        </div>
+
+        <div class="benefit-card">
+          <h4>Reasoning Delimiters</h4>
+          <p>Tags like <code>&lt;thinking&gt;</code> and <code>&lt;answer&gt;</code> enable sophisticated
+          multi-step reasoning within structured frameworks.</p>
+        </div>
+      </div>
+
+      <p>
+        The tradeoff is token count—XML uses more tokens than JSON for the same data. But the accuracy gains
+        more than compensate, especially for complex reasoning tasks where misinterpretation is costly.
+      </p>
+    </section>
+
+    <section>
+      <h2>The Problem: Flat Memory Dumps</h2>
+
+      <p>
+        Consider a typical customer memory file for an insurance brokerage. Every interaction—phone calls,
+        emails, documents, notes—serialized into a single context payload:
+      </p>
+
+      <pre><code class="language-javascript">{codeFlatMemory}</code></pre>
+
+      <div class="stats-callout">
+        <div class="stat">
+          <span class="number">132KB</span>
+          <span class="label">File Size</span>
+        </div>
+        <div class="stat">
+          <span class="number">~46,000</span>
+          <span class="label">Tokens</span>
+        </div>
+        <div class="stat">
+          <span class="number">68</span>
+          <span class="label">Events</span>
+        </div>
+        <div class="stat">
+          <span class="number">$0.69</span>
+          <span class="label">Per Query (Claude)</span>
+        </div>
+      </div>
+
+      <h3>Why This Fails</h3>
+
+      <ul>
+        <li><strong>Token waste:</strong> Most queries need 2-3 events, not 68</li>
+        <li><strong>Context rot:</strong> Important details buried in noise, recall degrades</li>
+        <li><strong>Cost explosion:</strong> $0.69 per query × thousands of daily queries = budget destroyed</li>
+        <li><strong>Latency:</strong> More tokens = slower inference</li>
+        <li><strong>Attention dilution:</strong> Model struggles to identify relevant information</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>The Solution: Progressive Disclosure</h2>
+
+      <p>
+        Anthropic introduced <strong>progressive disclosure</strong> as a core design principle for Agent Skills—
+        but the pattern applies broadly to any memory system. The idea: organize information in layers, like a
+        filesystem, allowing the LLM to explore only what's needed.
+      </p>
+
+      <pre><code class="language-python">{codeLayeredMemory}</code></pre>
+
+      <h3>The Three Layers</h3>
+
+      <div class="layers-diagram">
+        <div class="layer">
+          <div class="layer-header">
+            <span class="layer-number">0</span>
+            <h4>Company Context</h4>
+          </div>
+          <p>Always loaded. Core identity, contact info, key metrics. ~500 tokens.</p>
+        </div>
+
+        <div class="layer">
+          <div class="layer-header">
+            <span class="layer-number">1</span>
+            <h4>Events Index</h4>
+          </div>
+          <p>Summaries only. Type, date, one-line description. ~50 tokens each.</p>
+        </div>
+
+        <div class="layer">
+          <div class="layer-header">
+            <span class="layer-number">2+</span>
+            <h4>On-Demand Detail</h4>
+          </div>
+          <p>Full content via tool calls. Transcripts, emails, PDFs—loaded only when relevant.</p>
+        </div>
+      </div>
+
+      <p>
+        This mirrors how humans navigate information. You don't memorize every email—you remember
+        "there was an email about quotes last week" and retrieve it when needed.
+      </p>
+    </section>
+
+    <section>
+      <h2>Memory MCP: The Implementation</h2>
+
+      <p>
+        The <strong>Model Context Protocol (MCP)</strong> provides the infrastructure for progressive disclosure.
+        Instead of dumping everything into context, we expose tools that let the agent explore:
+      </p>
+
+      <pre><code class="language-python">{codeMemoryMCP}</code></pre>
+
+      <h3>The Agent Workflow</h3>
+
+      <pre><code class="language-python">{codeAgentWorkflow}</code></pre>
+
+      <div class="comparison-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Flat Dump</th>
+              <th>Progressive Disclosure</th>
+              <th>Improvement</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Tokens per query</td>
+              <td>~46,000</td>
+              <td>~2,700</td>
+              <td class="positive">94% reduction</td>
+            </tr>
+            <tr>
+              <td>Cost per query</td>
+              <td>$0.69</td>
+              <td>$0.04</td>
+              <td class="positive">94% savings</td>
+            </tr>
+            <tr>
+              <td>Latency</td>
+              <td>~8 seconds</td>
+              <td>~2 seconds</td>
+              <td class="positive">75% faster</td>
+            </tr>
+            <tr>
+              <td>Accuracy</td>
+              <td>Degraded by noise</td>
+              <td>Focused context</td>
+              <td class="positive">Higher recall</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Compaction: Managing Long-Running Sessions</h2>
+
+      <p>
+        Progressive disclosure handles the <em>width</em> of information. <strong>Compaction</strong> handles
+        the <em>depth</em>—what happens when conversations span hours and context windows fill up?
+      </p>
+
+      <pre><code class="language-python">{codeCompactionStrategy}</code></pre>
+
+      <p>
+        The key insight: not all information has equal value. Preserve <em>architectural decisions</em>,
+        <em>customer preferences</em>, and <em>action items</em>. Discard <em>greetings</em>,
+        <em>acknowledgments</em>, and <em>verbose intermediate outputs</em>.
+      </p>
+
+      <p>
+        Anthropic's Claude Pokémon agent demonstrates this at scale—maintaining coherent behavior across
+        thousands of steps by persistently storing strategic learnings in external notes (NOTES.md pattern)
+        that survive context resets.
+      </p>
+    </section>
+
+    <section>
+      <h2>Trade-offs and Considerations</h2>
+
+      <h3>Progressive Disclosure Costs</h3>
+
+      <ul>
+        <li><strong>Latency:</strong> Tool calls add round-trips. A flat dump is one inference; exploration
+        requires multiple turns.</li>
+        <li><strong>Complexity:</strong> Requires careful system design—what goes in Layer 0? How granular
+        should summaries be?</li>
+        <li><strong>Risk of missing context:</strong> If the agent doesn't know to explore, it might miss
+        relevant information.</li>
+      </ul>
+
+      <h3>Mitigation Strategies</h3>
+
+      <ul>
+        <li><strong>Smart Layer 0:</strong> Include enough context that the agent knows <em>what to explore</em>.
+        "3 insurance quotes received" triggers exploration; "some emails" doesn't.</li>
+        <li><strong>Hybrid approaches:</strong> Pre-load critical recent events, enable exploration for history.</li>
+        <li><strong>Semantic summaries:</strong> Layer 1 summaries should be information-dense, not just
+        "Email from Sarah" but "GL quote $3,800/yr, excludes hurricane, 30-day validity".</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Real-World Results</h2>
+
+      <p>
+        Research from <a href="https://mem0.ai/research" target="_blank" rel="noopener noreferrer">Mem0</a>
+        validates this architecture at scale:
+      </p>
+
+      <ul>
+        <li><strong>26% higher response accuracy</strong> vs. OpenAI's memory on LOCOMO benchmark</li>
+        <li><strong>91% lower p95 latency</strong> through selective retrieval</li>
+        <li><strong>90% token savings</strong> by loading only relevant context</li>
+      </ul>
+
+      <p>
+        The pattern has been adopted by production systems including <a href="https://github.com/doobidoo/mcp-memory-service" target="_blank" rel="noopener noreferrer">MCP Memory Service</a>
+        (compatible with Claude Code, Cursor, VS Code) and enterprise CRM integrations.
+      </p>
+    </section>
+
+    <section>
+      <h2>Key Takeaways</h2>
+
+      <div class="takeaways">
+        <div class="takeaway">
+          <span class="number">1</span>
+          <div>
+            <h4>Context > Prompts</h4>
+            <p>The shift from prompt engineering to context engineering reflects a maturation of the field.
+            Design the information environment, not just the instructions.</p>
+          </div>
+        </div>
+
+        <div class="takeaway">
+          <span class="number">2</span>
+          <div>
+            <h4>XML for Structured Data</h4>
+            <p>Claude (and most LLMs) parse XML more reliably than JSON. The token overhead is worth the
+            accuracy gains for complex reasoning tasks.</p>
+          </div>
+        </div>
+
+        <div class="takeaway">
+          <span class="number">3</span>
+          <div>
+            <h4>Progressive Disclosure</h4>
+            <p>Layer information like a filesystem. Always-loaded summaries, on-demand details via tool calls.
+            90%+ token savings are achievable.</p>
+          </div>
+        </div>
+
+        <div class="takeaway">
+          <span class="number">4</span>
+          <div>
+            <h4>Memory MCP Pattern</h4>
+            <p>Expose exploration tools (search, get_detail, get_document) rather than dumping everything.
+            Let the agent navigate autonomously.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="references">
+      <h2>References</h2>
+      <ul>
+        <li><a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents" target="_blank" rel="noopener noreferrer">Effective Context Engineering for AI Agents</a> — Anthropic Engineering</li>
+        <li><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/use-xml-tags" target="_blank" rel="noopener noreferrer">Use XML Tags to Structure Your Prompts</a> — Claude Documentation</li>
+        <li><a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills" target="_blank" rel="noopener noreferrer">Equipping Agents for the Real World with Agent Skills</a> — Anthropic</li>
+        <li><a href="https://addyo.substack.com/p/context-engineering-bringing-engineering" target="_blank" rel="noopener noreferrer">Context Engineering: Bringing Engineering Discipline to Prompts</a> — Addy Osmani</li>
+        <li><a href="https://arxiv.org/abs/2504.19413" target="_blank" rel="noopener noreferrer">Mem0: Building Production-Ready AI Agents with Scalable Long-Term Memory</a> — arXiv</li>
+        <li><a href="https://arxiv.org/abs/2512.13564" target="_blank" rel="noopener noreferrer">Memory in the Age of AI Agents: A Survey</a> — arXiv</li>
+        <li><a href="https://github.com/doobidoo/mcp-memory-service" target="_blank" rel="noopener noreferrer">MCP Memory Service</a> — GitHub</li>
+        <li><a href="https://codeconductor.ai/blog/structured-prompting-techniques-xml-json/" target="_blank" rel="noopener noreferrer">Structured Prompting Techniques: XML & JSON Guide</a> — CodeConductor</li>
+      </ul>
+    </section>
+
+  </article>
+</BlogLayout>
+
+<style>
+  .blog-content {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .intro {
+    margin-bottom: var(--space-12);
+  }
+
+  .lead {
+    font-size: var(--text-xl);
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+    margin-bottom: var(--space-6);
+  }
+
+  section {
+    margin-bottom: var(--space-16);
+  }
+
+  h2 {
+    font-size: var(--text-2xl);
+    margin-bottom: var(--space-6);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  h3 {
+    font-size: var(--text-xl);
+    margin-top: var(--space-8);
+    margin-bottom: var(--space-4);
+  }
+
+  h4 {
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-2);
+  }
+
+  p {
+    margin-bottom: var(--space-4);
+    line-height: 1.8;
+  }
+
+  ul, ol {
+    margin-bottom: var(--space-6);
+    padding-left: var(--space-6);
+  }
+
+  li {
+    margin-bottom: var(--space-2);
+    line-height: 1.7;
+  }
+
+  pre {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: var(--space-4);
+    overflow-x: auto;
+    margin-bottom: var(--space-6);
+    font-size: var(--text-sm);
+  }
+
+  code {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  :not(pre) > code {
+    background: var(--color-bg-elevated);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  blockquote {
+    border-left: 3px solid #a78bfa;
+    padding-left: var(--space-6);
+    margin: var(--space-8) 0;
+    font-style: italic;
+    color: var(--color-text-secondary);
+  }
+
+  blockquote cite {
+    display: block;
+    margin-top: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+  }
+
+  .benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+    margin: var(--space-8) 0;
+  }
+
+  .benefit-card {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: var(--space-4);
+  }
+
+  .benefit-card h4 {
+    color: #a78bfa;
+    margin-bottom: var(--space-2);
+  }
+
+  .benefit-card p {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+  }
+
+  .stats-callout {
+    display: flex;
+    justify-content: space-around;
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.1), rgba(245, 197, 66, 0.1));
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: var(--space-6);
+    margin: var(--space-8) 0;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat .number {
+    display: block;
+    font-size: var(--text-2xl);
+    font-weight: 600;
+    color: #a78bfa;
+  }
+
+  .stat .label {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+  }
+
+  .layers-diagram {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin: var(--space-8) 0;
+  }
+
+  .layer {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: var(--space-4);
+  }
+
+  .layer-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-2);
+  }
+
+  .layer-number {
+    width: 28px;
+    height: 28px;
+    background: #a78bfa;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: var(--text-sm);
+  }
+
+  .layer-header h4 {
+    margin: 0;
+  }
+
+  .layer p {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+  }
+
+  .comparison-table {
+    overflow-x: auto;
+    margin: var(--space-8) 0;
+  }
+
+  .comparison-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+  }
+
+  .comparison-table th,
+  .comparison-table td {
+    padding: var(--space-3) var(--space-4);
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .comparison-table th {
+    background: var(--color-bg-elevated);
+    font-weight: 600;
+  }
+
+  .comparison-table .positive {
+    color: #10b981;
+    font-weight: 500;
+  }
+
+  .takeaways {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .takeaway {
+    display: flex;
+    gap: var(--space-4);
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: var(--space-4);
+  }
+
+  .takeaway .number {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #a78bfa, #f5c542);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .takeaway h4 {
+    margin-bottom: var(--space-1);
+  }
+
+  .takeaway p {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+  }
+
+  .references {
+    background: var(--color-bg-elevated);
+    border-radius: 12px;
+    padding: var(--space-6);
+  }
+
+  .references h2 {
+    border-bottom: none;
+    margin-bottom: var(--space-4);
+  }
+
+  .references ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .references li {
+    margin-bottom: var(--space-2);
+  }
+
+  .references a {
+    color: #a78bfa;
+    text-decoration: none;
+  }
+
+  .references a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .benefits-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .stats-callout {
+      flex-wrap: wrap;
+      gap: var(--space-4);
+    }
+
+    .stat {
+      flex: 1 1 40%;
+    }
+  }
+</style>

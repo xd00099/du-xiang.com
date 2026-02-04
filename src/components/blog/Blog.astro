@@ -1,0 +1,172 @@
+---
+import SectionHeading from '../common/SectionHeading.astro';
+
+const blogs = [
+  {
+    title: "Lipstick Recommendation",
+    description: "How data science can be applied in the real world using Taobao data to show lipstick buying trends and recommendations.",
+    image: "/images/image_1.jpg",
+    date: "2019-07-01",
+    link: "https://mp.weixin.qq.com/s/RryxBWAClB9AgIqFvoSbhg",
+    external: true
+  },
+  {
+    title: "Earthquake Analysis",
+    description: "Earthquake analysis based on web crawled data and heatmap visualization.",
+    image: "/images/earthquake.jpg",
+    date: "2020-05-03",
+    link: "https://mp.weixin.qq.com/s/Od3sdJ60wn4WKgM2PfC05A",
+    external: true
+  },
+  {
+    title: "Hotel Reviews Classification",
+    description: "Analyses European hotel reviews from Booking.com to determine user satisfaction using ML and text mining.",
+    image: "/images/hotel.jpeg",
+    date: "ML Research",
+    link: "/files/hotel_reviews.pdf",
+    external: false
+  }
+];
+---
+
+<section class="section blogs" id="blogs">
+  <div class="container">
+    <SectionHeading
+      title="My Blogs"
+      watermark="Blogs"
+    />
+
+    <div class="blogs-grid">
+      {blogs.map((blog, index) => (
+        <a
+          href={blog.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="blog-card glass-card fade-up"
+          style={`--i: ${index}`}
+        >
+          <div class="blog-image">
+            <img src={blog.image} alt={blog.title} loading="lazy" />
+            {blog.external && (
+              <span class="external-badge">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/>
+                  <line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+              </span>
+            )}
+          </div>
+          <div class="blog-content">
+            <span class="blog-date">{blog.date}</span>
+            <h3 class="blog-title">{blog.title}</h3>
+            <p class="blog-description">{blog.description}</p>
+          </div>
+        </a>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .blogs {
+    background: var(--color-bg-primary);
+  }
+
+  .blogs-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-6);
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .blog-card {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    overflow: hidden;
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+  }
+
+  .blog-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  .blog-image {
+    position: relative;
+    height: 200px;
+    overflow: hidden;
+  }
+
+  .blog-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-slow);
+  }
+
+  .blog-card:hover .blog-image img {
+    transform: scale(1.1);
+  }
+
+  .external-badge {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-primary);
+    color: var(--color-text-secondary);
+    border-radius: var(--radius-sm);
+  }
+
+  .blog-content {
+    padding: var(--space-5);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .blog-date {
+    font-size: var(--text-xs);
+    color: var(--color-accent-primary);
+    margin-bottom: var(--space-2);
+  }
+
+  .blog-title {
+    font-size: var(--text-lg);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-3);
+    transition: color var(--transition-fast);
+  }
+
+  .blog-card:hover .blog-title {
+    color: var(--color-accent-primary);
+  }
+
+  .blog-description {
+    font-size: var(--text-sm);
+    color: var(--color-text-tertiary);
+    line-height: 1.6;
+    margin-bottom: 0;
+    flex: 1;
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .blogs-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .blogs-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

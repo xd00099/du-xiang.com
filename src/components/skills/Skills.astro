@@ -1,0 +1,251 @@
+---
+import SectionHeading from '../common/SectionHeading.astro';
+
+const skillCategories = [
+  {
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
+    title: "Full Stack Development",
+    skills: ["React", "MongoDB", "Express", "Node.js"]
+  },
+  {
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg>`,
+    title: "Machine/Deep Learning",
+    skills: ["PyTorch", "NLP", "Sklearn", "TensorFlow"]
+  },
+  {
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg>`,
+    title: "Data Engineering",
+    skills: ["Spark", "ETL", "Data Modeling"]
+  },
+  {
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3m6-3v3m-6 17v3m6-3v3m8-14h3M1 9h3m17 6h3M1 15h3"/></svg>`,
+    title: "High Performance Computing",
+    skills: ["MPI", "CUDA", "OpenMP"]
+  },
+  {
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+    title: "Data Visualization",
+    skills: ["Matplotlib", "Tableau", "D3.js"]
+  },
+  {
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>`,
+    title: "DevOps & Deployment",
+    skills: ["Kubernetes", "Docker", "Heroku", "AWS"]
+  }
+];
+
+const programmingSkills = [
+  { name: "Python", level: 95, color: "#f5c542" },
+  { name: "HTML/CSS/JS", level: 95, color: "#a855f7" },
+  { name: "SQL", level: 85, color: "#3b82f6" },
+  { name: "C++/CUDA", level: 80, color: "#f5c542" },
+  { name: "Java", level: 85, color: "#a855f7" },
+  { name: "Bash", level: 85, color: "#3b82f6" }
+];
+---
+
+<section class="section skills" id="skills">
+  <div class="container">
+    <SectionHeading
+      title="Skills"
+      watermark="Skills"
+      subtitle="It is possible to fly without motors, but not without knowledge and skill. - Wilbur Wright"
+    />
+
+    <!-- Skill Categories Grid -->
+    <div class="categories-grid">
+      {skillCategories.map((category, index) => (
+        <div class="category-card glass-card fade-up" style={`--i: ${index}`}>
+          <div class="category-icon" set:html={category.icon} />
+          <h3 class="category-title">{category.title}</h3>
+          <div class="category-skills">
+            {category.skills.map(skill => (
+              <span class="skill-tag">{skill}</span>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- Programming Proficiency -->
+    <div class="proficiency-section">
+      <h3 class="proficiency-title fade-up">Programming Proficiency</h3>
+      <p class="proficiency-quote fade-up">
+        "You might not think that programmers are artists, but programming is an extremely creative profession." - John Romero
+      </p>
+
+      <div class="progress-grid">
+        {programmingSkills.map((skill, index) => (
+          <div class="progress-item fade-up" style={`--i: ${index}`}>
+            <div class="progress-header">
+              <span class="progress-name">{skill.name}</span>
+              <span class="progress-value">{skill.level}%</span>
+            </div>
+            <div class="progress-bar">
+              <div
+                class="progress-fill"
+                style={`--progress: ${skill.level}%; --color: ${skill.color}`}
+                data-progress={skill.level}
+              ></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .skills {
+    background: var(--color-bg-primary);
+  }
+
+  /* Categories Grid */
+  .categories-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+    margin-bottom: var(--space-16);
+  }
+
+  .category-card {
+    padding: var(--space-6);
+    text-align: center;
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+  }
+
+  .category-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  .category-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto var(--space-4);
+    background: var(--gradient-primary);
+    border-radius: var(--radius-xl);
+    color: var(--color-bg-primary);
+  }
+
+  .category-title {
+    font-size: var(--text-base);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-4);
+  }
+
+  .category-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    justify-content: center;
+  }
+
+  .skill-tag {
+    font-size: var(--text-xs);
+    color: var(--color-text-tertiary);
+    background: var(--color-bg-tertiary);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-sm);
+  }
+
+  /* Proficiency Section */
+  .proficiency-section {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .proficiency-title {
+    font-size: var(--text-2xl);
+    text-align: center;
+    margin-bottom: var(--space-4);
+  }
+
+  .proficiency-quote {
+    text-align: center;
+    color: var(--color-text-tertiary);
+    font-style: italic;
+    margin-bottom: var(--space-10);
+  }
+
+  .progress-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-6) var(--space-10);
+  }
+
+  .progress-item {
+    margin-bottom: var(--space-2);
+  }
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: var(--space-2);
+  }
+
+  .progress-name {
+    font-weight: 500;
+    color: var(--color-text-primary);
+  }
+
+  .progress-value {
+    font-size: var(--text-sm);
+    color: var(--color-accent-primary);
+    font-weight: 600;
+  }
+
+  .progress-bar {
+    height: 8px;
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 0;
+    background: var(--color);
+    border-radius: var(--radius-full);
+    transition: width 1s ease-out;
+  }
+
+  .progress-fill.animate {
+    width: var(--progress);
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .categories-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 600px) {
+    .categories-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .progress-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  // Animate progress bars when visible
+  const progressBars = document.querySelectorAll('.progress-fill');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('animate');
+      }
+    });
+  }, { threshold: 0.5 });
+
+  progressBars.forEach(bar => observer.observe(bar));
+</script>
