@@ -1,0 +1,369 @@
+---
+const blogs = [
+  {
+    date: "2026-02-09",
+    title: "Agent Teams vs Sub-Agents: Multi-Agent Architectures for LLMs",
+    description: "Claude Code's Agent Teams let AI agents communicate peer-to-peer. How does this compare to hub-and-spoke sub-agents and other multi-agent patterns?",
+    tags: ["AI Agents", "Architecture", "Claude Code"],
+    link: "/blog/agent-teams-architecture",
+    readTime: "18 min"
+  },
+  {
+    date: "2026-02-04",
+    title: "Skills vs MCP: Tool Architecture for AI Agents",
+    description: "A deep dive into Skills vs MCP for building production AI agents—with enterprise use cases, security considerations, and practical recommendations.",
+    tags: ["MCP", "AI Agents", "Claude"],
+    link: "/blog/skills-vs-mcp-agents",
+    readTime: "14 min"
+  },
+  {
+    date: "2025-08-07",
+    title: "Context Engineering: Building Intelligent Memory Systems",
+    description: "How to design memory systems that give AI agents the right context at the right time—from short-term buffers to persistent knowledge graphs.",
+    tags: ["Context Engineering", "Memory", "AI Agents"],
+    link: "/blog/context-engineering-memory",
+    readTime: "16 min"
+  },
+  {
+    date: "2024-09-20",
+    title: "Scaling SEO & GEO Content with LLMs",
+    description: "Using LLMs to generate search-optimized and geo-targeted content pipelines for multi-market deployments.",
+    tags: ["SEO", "GEO", "Claude", "Content Gen"],
+    link: "/blog/seo-geo-content-generation",
+    readTime: "15 min"
+  },
+  {
+    date: "2024-06-10",
+    title: "Real-Time Personalized Quick Suggest with WebSockets",
+    description: "Building low-latency autocomplete and suggestion systems powered by streaming language model inference.",
+    tags: ["FAISS", "WebSocket", "FastAPI"],
+    link: "/blog/realtime-quick-suggest",
+    readTime: "15 min"
+  },
+  {
+    date: "2024-03-15",
+    title: "Hot-Swappable LoRA: Serving 16 Models on One GPU",
+    description: "How to serve dozens of LoRA adapters from a single base model in production using vLLM, PEFT, and SageMaker.",
+    tags: ["vLLM", "LoRA", "MLOps"],
+    link: "/blog/multi-lora-serving",
+    readTime: "15 min"
+  },
+  {
+    date: "2023-12-28",
+    title: "Latent Reasoning: Teaching Small LLMs to Think Without Thinking",
+    description: "Training small models to reason in latent space—achieving chain-of-thought quality without the token overhead.",
+    tags: ["LLM", "Fine-tuning", "ML Systems"],
+    link: "/blog/latent-reasoning-slm",
+    readTime: "12 min"
+  },
+  {
+    date: "2021-07-01",
+    title: "Lipstick Recommendation",
+    description: "How data science can be applied in the real world using Taobao data to show lipstick buying trends and recommendations.",
+    tags: ["Data Science", "ML"],
+    link: "https://mp.weixin.qq.com/s/RryxBWAClB9AgIqFvoSbhg",
+    readTime: "8 min",
+    external: true
+  },
+  {
+    date: "2020-05-03",
+    title: "Earthquake Analysis",
+    description: "Earthquake analysis based on web crawled data and heatmap visualization.",
+    tags: ["D3.js", "Visualization"],
+    link: "https://mp.weixin.qq.com/s/Od3sdJ60wn4WKgM2PfC05A",
+    readTime: "6 min",
+    external: true
+  },
+];
+
+import ThemeToggle from '../../components/common/ThemeToggle.astro';
+
+const allTags = [...new Set(blogs.flatMap(b => b.tags))].sort();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Blog posts by Du Xiang on AI agents, LLM systems, MLOps, and production machine learning." />
+    <meta name="author" content="Du Xiang" />
+
+    <meta property="og:title" content="Blog | Du Xiang" />
+    <meta property="og:description" content="Writing on AI agents, LLM systems, and production ML." />
+    <meta property="og:type" content="website" />
+
+    <link rel="icon" type="image/jpeg" href="/images/title.jpg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+    <title>Blog | Du Xiang</title>
+
+    <script is:inline>
+      (function() {
+        var stored = localStorage.getItem('theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = stored || (prefersDark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
+  </head>
+  <body>
+    <header class="page-header">
+      <a href="/" class="back-link">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="19" y1="12" x2="5" y2="12"/>
+          <polyline points="12 19 5 12 12 5"/>
+        </svg>
+        Home
+      </a>
+      <ThemeToggle />
+    </header>
+
+    <main class="page-main">
+      <div class="page-hero">
+        <p class="page-label">Blog</p>
+        <h1 class="page-title">Writing</h1>
+        <p class="page-subtitle">
+          Thoughts on AI agents, LLM systems, MLOps, and building intelligent software at scale.
+        </p>
+      </div>
+
+      <div class="posts-container">
+        {blogs.map((blog, i) => (
+          <a href={blog.link} class="post-card" style={`--delay: ${i * 0.04}s`} target={blog.external ? "_blank" : "_self"} rel={blog.external ? "noopener noreferrer" : undefined}>
+            <div class="post-meta">
+              <time datetime={blog.date}>
+                {new Date(blog.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+              </time>
+              <span class="meta-sep">&middot;</span>
+              <span>{blog.readTime}</span>
+            </div>
+            <h2 class="post-title">{blog.title}</h2>
+            <p class="post-description">{blog.description}</p>
+            <div class="post-tags">
+              {blog.tags.map(tag => (
+                <span class="post-tag">{tag}</span>
+              ))}
+            </div>
+            <span class="post-read-more">
+              Read article
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="5" y1="12" x2="19" y2="12"/>
+                <polyline points="12 5 19 12 12 19"/>
+              </svg>
+            </span>
+          </a>
+        ))}
+      </div>
+    </main>
+
+    <footer class="page-footer">
+      <p>&copy; {new Date().getFullYear()} Du Xiang</p>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  @import '../../styles/global.css';
+
+  body {
+    background: var(--color-bg);
+  }
+
+  /* Header */
+  .page-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--space-8);
+    background: var(--color-overlay-medium);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--color-border);
+    z-index: 100;
+  }
+
+  .back-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+
+  .back-link:hover {
+    color: var(--color-text);
+  }
+
+  /* Hero */
+  .page-main {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 0 var(--space-6);
+    padding-top: 120px;
+    padding-bottom: var(--space-20);
+    min-height: 100vh;
+  }
+
+  .page-hero {
+    margin-bottom: var(--space-16);
+  }
+
+  .page-label {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: var(--space-4);
+  }
+
+  .page-title {
+    font-size: clamp(var(--text-4xl), 6vw, var(--text-5xl));
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    margin-bottom: var(--space-4);
+  }
+
+  .page-subtitle {
+    font-size: var(--text-lg);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    max-width: 540px;
+  }
+
+  /* Post Cards */
+  .posts-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--color-border);
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .post-card {
+    display: block;
+    padding: var(--space-8);
+    background: var(--color-bg);
+    text-decoration: none;
+    transition: background var(--duration-fast) var(--ease-out);
+    animation: fadeUp 0.4s var(--ease-out) var(--delay) both;
+  }
+
+  .post-card:hover {
+    background: var(--color-bg-elevated);
+  }
+
+  .post-card:hover .post-title {
+    color: var(--color-link);
+  }
+
+  .post-card:hover .post-read-more {
+    color: var(--color-text);
+    gap: var(--space-3);
+  }
+
+  .post-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-3);
+  }
+
+  .meta-sep {
+    opacity: 0.4;
+  }
+
+  .post-title {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--color-text);
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+    margin-bottom: var(--space-2);
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+
+  .post-description {
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    margin-bottom: var(--space-4);
+  }
+
+  .post-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-4);
+  }
+
+  .post-tag {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    padding: 3px 10px;
+    background: var(--color-hover-fill);
+    border: 1px solid var(--color-border);
+    border-radius: 9999px;
+  }
+
+  .post-read-more {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--color-text-muted);
+    transition: all var(--duration-fast) var(--ease-out);
+  }
+
+  /* Footer */
+  .page-footer {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: var(--space-8) var(--space-6);
+    border-top: 1px solid var(--color-border);
+    text-align: center;
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+  }
+
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .page-main {
+      padding-top: 100px;
+    }
+
+    .post-card {
+      padding: var(--space-6);
+    }
+
+    .post-title {
+      font-size: var(--text-lg);
+    }
+  }
+</style>

@@ -1,0 +1,932 @@
+---
+import BlogLayout from '../../layouts/BlogLayout.astro';
+
+const title = "Agent Teams vs Sub-Agents: Navigating Multi-Agent Architectures for LLMs";
+const description = "Claude Code's new Agent Teams feature lets AI agents communicate peer-to-peer and self-coordinate. How does this compare to traditional hub-and-spoke sub-agents, and when should you use each architecture?";
+const date = "2026-02-09";
+const readTime = "18 min read";
+const author = "Du Xiang";
+const tags = ["AI Agents", "Claude Code", "Architecture", "Multi-Agent Systems", "LLM"];
+
+const codeOldSubagent = `// The old model: Task tool spawns isolated sub-agents
+// Each sub-agent returns results ONLY to the parent
+
+Main Agent
+  ├── Task("Search for auth files")     → returns file list
+  ├── Task("Analyze test coverage")     → returns coverage report
+  └── Task("Check for security issues") → returns vulnerability list
+
+// Sub-agents cannot talk to each other
+// All coordination flows through the main agent
+// Each sub-agent operates in its own context window`;
+
+const codeEnableTeams = `// Enable Agent Teams (research preview)
+// settings.json
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}`;
+
+const codeTeamStructure = `# On-disk structure for Agent Teams
+~/.claude/
+├── teams/
+│   └── my-feature-team/
+│       ├── config.json          # Team members, roles, metadata
+│       └── inboxes/
+│           ├── lead.json        # Lead agent's message inbox
+│           ├── frontend.json    # Frontend agent's inbox
+│           ├── backend.json     # Backend agent's inbox
+│           └── tests.json       # Test agent's inbox
+└── tasks/
+    └── my-feature-team/
+        ├── 001.json             # { status: "completed", owner: "frontend" }
+        ├── 002.json             # { status: "in_progress", owner: "backend" }
+        ├── 003.json             # { status: "pending", blockedBy: ["002"] }
+        └── 004.json             # { status: "pending", owner: null }`;
+
+const codeMessageTypes = `// Agent Teams message types via SendMessage tool
+{
+  // Direct message to a specific teammate
+  "type": "message",
+  "to": "backend-agent",
+  "content": "The API schema changed -- endpoint now returns { data, meta }"
+}
+
+{
+  // Broadcast to all teammates (expensive -- scales with team size)
+  "type": "broadcast",
+  "content": "Shared types updated in src/types/api.ts -- pull before editing"
+}
+
+{
+  // Task completion notification (auto-sent)
+  "type": "task_completed",
+  "taskId": "002",
+  "summary": "REST endpoints implemented, OpenAPI spec at docs/api.yaml"
+}
+
+{
+  // Plan approval gate -- teammate pauses until lead approves
+  "type": "plan_approval_request",
+  "plan": "Proposing to refactor auth middleware to support JWT + OAuth2"
+}
+
+{
+  // Idle notification (auto-sent when teammate finishes all tasks)
+  "type": "idle_notification",
+  "completedTasks": ["001", "003"]
+}`;
+
+const codeHubSpoke = `# Hub-and-Spoke (Supervisor) Pattern
+# All communication flows through a central orchestrator
+
+class Orchestrator:
+    def __init__(self, agents: list[Agent]):
+        self.agents = {a.name: a for a in agents}
+
+    async def execute(self, task: str):
+        # 1. Decompose task
+        subtasks = await self.decompose(task)
+
+        # 2. Delegate to specialists
+        results = {}
+        for subtask in subtasks:
+            agent = self.route(subtask)
+            results[subtask.id] = await agent.execute(subtask)
+            # Each agent returns results ONLY to orchestrator
+
+        # 3. Synthesize
+        return await self.synthesize(results)
+
+# Pros: Simple, debuggable, full visibility
+# Cons: Bottleneck, context loss between agents, sequential`;
+
+const codePeerToPeer = `# Peer-to-Peer (Agent Teams) Pattern
+# Agents communicate directly with each other
+
+class Teammate:
+    def __init__(self, name: str, inbox: MessageQueue):
+        self.name = name
+        self.inbox = inbox
+        self.task_pool = SharedTaskList()
+
+    async def run(self):
+        while True:
+            # Self-claim available tasks
+            task = await self.task_pool.claim_next()
+            if not task:
+                await self.notify_idle()
+                break
+
+            # Execute with awareness of teammates
+            result = await self.execute(task)
+
+            # Notify teammates who depend on this work
+            for blocked_task in task.blocks:
+                owner = blocked_task.owner
+                if owner:
+                    await self.send_message(owner, {
+                        "type": "dependency_resolved",
+                        "task": task.id,
+                        "summary": result.summary
+                    })
+
+            await self.task_pool.mark_completed(task.id)
+
+# Pros: Rich collaboration, no bottleneck, parallel
+# Cons: Coordination complexity, token explosion, non-deterministic`;
+
+const codePipeline = `# Sequential Pipeline Pattern
+# Fixed-order assembly line -- each stage feeds the next
+
+pipeline = [
+    Agent("parser",     tools=["read_file", "parse_ast"]),
+    Agent("analyzer",   tools=["lint", "type_check", "complexity"]),
+    Agent("reviewer",   tools=["check_style", "find_bugs"]),
+    Agent("reporter",   tools=["format_markdown", "write_file"]),
+]
+
+async def run_pipeline(input_data):
+    state = input_data
+    for agent in pipeline:
+        state = await agent.process(state)
+        # Each agent transforms state and passes it forward
+        # No backtracking -- if stage 3 finds issues,
+        # it cannot ask stage 1 to redo its work
+    return state
+
+# Pros: Deterministic, easy to debug, clear data lineage
+# Cons: No parallelism, no backtracking, one slow stage blocks all`;
+
+const codeBlackboard = `# Blackboard Architecture
+# Agents collaborate via a shared knowledge base
+
+class Blackboard:
+    def __init__(self):
+        self.state = {}       # Shared knowledge base
+        self.subscribers = [] # Agents watching for changes
+
+    async def write(self, key: str, value: any, author: str):
+        self.state[key] = {
+            "value": value,
+            "author": author,
+            "timestamp": now()
+        }
+        # Notify agents interested in this key
+        for agent in self.subscribers:
+            if agent.watches(key):
+                await agent.on_update(key, value)
+
+    async def read(self, key: str) -> any:
+        return self.state.get(key, {}).get("value")
+
+# Usage: Agents read/write to blackboard independently
+# Agent A posts partial solution → Agent B refines it
+# No direct agent-to-agent communication needed
+
+# Pros: Decoupled agents, incremental problem-solving
+# Cons: State management complexity, potential conflicts`;
+
+const codeTokenComparison = `# Token consumption comparison (approximate)
+
+Standard chat interaction:     ~1x     (baseline)
+Single agent with tools:       ~4x
+Hub-and-spoke (3 sub-agents):  ~6-8x   (sub-agent contexts + orchestrator)
+Agent Teams (3 teammates):     ~12-15x (full sessions + messaging overhead)
+Swarm (10+ agents):            ~50x+   (each agent = full context window)
+
+# Research finding: skill-based single-agent systems achieve
+# similar accuracy to multi-agent counterparts while reducing
+# token consumption by 54% and latency by 50% on average
+# (arXiv: 2601.04748)`;
+
+const codeDecisionMatrix = `# When to use which architecture
+
+SINGLE_AGENT:
+  - Task is sequential and state-dependent
+  - Context fits in one window
+  - Latency requirements are strict
+  - Budget is constrained
+
+PIPELINE:
+  - Linear data transformation (parse → analyze → format)
+  - Each stage has clear input/output contracts
+  - No backtracking needed
+
+HUB_AND_SPOKE:
+  - Clear task decomposition is possible
+  - Sub-tasks are independent (no cross-talk needed)
+  - You need full orchestrator visibility
+  - Debugging simplicity is important
+
+AGENT_TEAMS:
+  - Cross-layer work requires collaboration
+  - Multiple perspectives improve quality (code review, debugging)
+  - Tasks are parallelizable but interdependent
+  - Budget allows 3-5x token premium
+
+SWARM:
+  - Exploration-heavy tasks (research, search)
+  - Resilience is critical (no single point of failure)
+  - Budget is not a primary concern`;
+---
+
+<BlogLayout title={title} description={description} date={date} readTime={readTime} author={author} tags={tags}>
+  <p>
+    On February 5, 2026, Anthropic launched <strong>Agent Teams</strong> as a research preview in Claude Code alongside Opus 4.6.
+    The feature represents a fundamental shift in how AI agents collaborate: instead of a single orchestrator
+    delegating to isolated sub-agents that can only report back, agents can now <strong>communicate peer-to-peer,
+    self-claim tasks from a shared pool, and coordinate directly with each other</strong>.
+  </p>
+
+  <p>
+    This post examines what Agent Teams actually are, how they compare to the traditional sub-agent model, and
+    where they fit in the broader landscape of multi-agent architectures. Rather than declaring a winner, the goal
+    is to build a clear mental model for when each approach makes sense.
+  </p>
+
+  <div class="callout">
+    <strong>TL;DR:</strong> Agent Teams trade simplicity and token efficiency for richer collaboration and parallelism.
+    They shine when tasks require cross-agent coordination (not just delegation). For most workflows, the simpler
+    hub-and-spoke model or even a single agent remains the better choice. The right architecture depends on
+    whether your agents need to <em>talk to each other</em> or just <em>report to a boss</em>.
+  </div>
+
+  <h2>The Old Model: Sub-Agents as Isolated Workers</h2>
+
+  <p>
+    Before Agent Teams, Claude Code used a <strong>hub-and-spoke</strong> pattern. The main session (the "hub") could
+    spawn sub-agents using the <code>Task</code> tool. Each sub-agent operated in its own context window, executed a
+    focused task, and returned results exclusively to the calling agent. Sub-agents could not talk to each other.
+  </p>
+
+  <pre><code set:html={codeOldSubagent}></code></pre>
+
+  <p>
+    This model works well for <strong>isolated, parallelizable tasks</strong> where only the final result matters.
+    Need to search three different directories simultaneously? Spawn three sub-agents. Need a code review and a
+    test analysis? Two sub-agents, results merged by the parent.
+  </p>
+
+  <p>
+    But the model breaks down when sub-agents need awareness of each other's work. Consider building a full-stack
+    feature: a frontend agent creates a component expecting a certain API shape, while a backend agent independently
+    designs a different response format. Neither agent can see the other's decisions. The orchestrator only discovers
+    the mismatch after both finish, leading to rework.
+  </p>
+
+  <p>
+    This is what Cognition AI (the team behind Devin) calls the <strong>"Flappy Bird problem"</strong>: two agents
+    tasked with building parts of a game independently produce a Super Mario background and a mismatched bird sprite.
+    Without real-time visibility into each other's work, coherence is impossible.
+  </p>
+
+  <h2>Agent Teams: Peer-to-Peer Collaboration</h2>
+
+  <p>
+    Agent Teams introduces four core primitives that transform the architecture from hub-and-spoke to peer-to-peer:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>Role</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Team Lead</strong></td>
+        <td>Creates the team, spawns teammates, assigns initial tasks, synthesizes results</td>
+      </tr>
+      <tr>
+        <td><strong>Teammates</strong></td>
+        <td>Fully independent Claude Code sessions that work on assigned tasks</td>
+      </tr>
+      <tr>
+        <td><strong>Shared Task List</strong></td>
+        <td>Persistent, disk-based task pool with dependency tracking and self-claiming</td>
+      </tr>
+      <tr>
+        <td><strong>Mailbox System</strong></td>
+        <td>JSON-based inboxes enabling direct agent-to-agent messaging</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    The feature is currently gated behind an environment variable:
+  </p>
+
+  <pre><code class="language-json" set:html={codeEnableTeams}></code></pre>
+
+  <h3>On-Disk Coordination</h3>
+
+  <p>
+    Unlike in-memory orchestration, Agent Teams coordinate entirely through the filesystem. Tasks are numbered JSON
+    files. Messages are appended to inbox JSON files. File locking prevents race conditions when multiple teammates
+    try to claim the same task.
+  </p>
+
+  <pre><code set:html={codeTeamStructure}></code></pre>
+
+  <p>
+    This design has a critical implication: <strong>there is no shared memory</strong>. Agents cannot see each other's
+    context windows. The only coordination channels are task files and messages. This is both a feature (isolation prevents
+    cascading failures) and a limitation (agents must explicitly communicate everything they want others to know).
+  </p>
+
+  <h3>The Messaging System</h3>
+
+  <p>
+    The <code>SendMessage</code> tool supports structured message types that enable rich coordination patterns:
+  </p>
+
+  <pre><code class="language-json" set:html={codeMessageTypes}></code></pre>
+
+  <p>
+    Two mechanisms stand out. First, <strong>plan approval gates</strong>: a teammate can be forced to work in read-only
+    plan mode until the lead explicitly approves its approach. This prevents agents from charging ahead with a bad plan.
+    Second, <strong>idle notifications</strong>: when a teammate finishes all its tasks, it automatically alerts the lead,
+    who can then assign more work or shut down the team.
+  </p>
+
+  <h3>Quality Control Hooks</h3>
+
+  <p>
+    Agent Teams integrates with Claude Code's hook system for enforcement:
+  </p>
+
+  <ul>
+    <li><strong>TeammateIdle hook:</strong> Runs when a teammate is about to go idle. Exit code 2 sends feedback and keeps the teammate working (useful for preventing premature completion).</li>
+    <li><strong>TaskCompleted hook:</strong> Runs when a task is being marked complete. Exit code 2 rejects the completion and sends feedback (useful for enforcing quality gates).</li>
+  </ul>
+
+  <p>
+    There's also a <strong>delegate mode</strong> (activated with <code>Shift+Tab</code>) that restricts the lead to
+    coordination-only tools -- preventing a common failure mode where the lead starts implementing tasks itself instead
+    of waiting for its teammates.
+  </p>
+
+  <h3>The C Compiler Stress Test</h3>
+
+  <p>
+    Anthropic stress-tested Agent Teams by having <strong>16 parallel agents</strong> build a Rust-based C compiler from
+    scratch. The results, published in an
+    <a href="https://www.anthropic.com/engineering/building-c-compiler" target="_blank" rel="noopener noreferrer">engineering blog post</a>:
+  </p>
+
+  <ul>
+    <li>Nearly <strong>2,000 Claude Code sessions</strong> over two weeks</li>
+    <li><strong>2 billion input tokens, 140 million output tokens</strong></li>
+    <li>Cost: just under <strong>$20,000</strong></li>
+    <li>Result: a 100,000-line compiler that compiles Linux 6.9 on x86, ARM, and RISC-V, passes 99% of GCC torture tests, and can build PostgreSQL, Redis, FFmpeg, and Doom</li>
+  </ul>
+
+  <p>
+    Key lessons from the project: high-quality test suites are essential (agents will solve the wrong problem if the
+    verifier isn't precise), file ownership must be carefully separated (two teammates editing the same file leads to
+    overwrites), and extensive READMEs are critical for agent orientation since agents lack persistent memory across sessions.
+  </p>
+
+  <h2>Sub-Agents vs Agent Teams: Side-by-Side</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Aspect</th>
+        <th>Sub-Agents (Task Tool)</th>
+        <th>Agent Teams</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Communication</strong></td>
+        <td>Report back to parent only</td>
+        <td>Any agent can message any other</td>
+      </tr>
+      <tr>
+        <td><strong>Lifetime</strong></td>
+        <td>Short-lived, synchronous</td>
+        <td>Persistent, long-running sessions</td>
+      </tr>
+      <tr>
+        <td><strong>Task coordination</strong></td>
+        <td>Main agent manages all work</td>
+        <td>Shared task list with self-claiming</td>
+      </tr>
+      <tr>
+        <td><strong>Context</strong></td>
+        <td>Own window; result string returned</td>
+        <td>Own window; full independent session</td>
+      </tr>
+      <tr>
+        <td><strong>Failure isolation</strong></td>
+        <td>Sub-agent failure returns error to parent</td>
+        <td>Teammate failure may block dependent tasks</td>
+      </tr>
+      <tr>
+        <td><strong>Token cost</strong></td>
+        <td>Lower (~6-8x baseline for 3 agents)</td>
+        <td>Higher (~12-15x baseline for 3 agents)</td>
+      </tr>
+      <tr>
+        <td><strong>Debuggability</strong></td>
+        <td>Good (all flows through one point)</td>
+        <td>Harder (distributed message traces)</td>
+      </tr>
+      <tr>
+        <td><strong>Best for</strong></td>
+        <td>Focused tasks where only the result matters</td>
+        <td>Complex work requiring cross-agent discussion</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout insight">
+    <strong>The fundamental trade-off:</strong> Sub-agents are cheaper and simpler but produce isolated results.
+    Agent Teams are expensive and complex but enable collaboration. The question is whether your task
+    <em>requires</em> agents to be aware of each other's work -- or whether independent results, merged
+    by an orchestrator, are sufficient.
+  </div>
+
+  <h2>The Broader Architecture Landscape</h2>
+
+  <p>
+    Agent Teams and sub-agents are just two points on a spectrum of multi-agent architectures. Understanding the full
+    landscape helps you pick the right tool for each problem.
+  </p>
+
+  <h3>1. Hub-and-Spoke (Supervisor)</h3>
+
+  <pre><code class="language-python" set:html={codeHubSpoke}></code></pre>
+
+  <p>
+    The most common pattern. A central orchestrator decomposes tasks, delegates to specialists, and synthesizes results.
+    All communication flows through the hub. This is what Claude Code's <code>Task</code> tool, LangGraph's
+    <a href="https://github.com/langchain-ai/langgraph-supervisor-py" target="_blank" rel="noopener noreferrer">supervisor pattern</a>,
+    and Microsoft's Semantic Kernel use by default.
+  </p>
+
+  <p>
+    <strong>When to use:</strong> Task decomposition is clear, sub-tasks are independent, and you need full visibility
+    into the workflow. This is the right default for most agentic applications.
+  </p>
+
+  <h3>2. Peer-to-Peer (Agent Teams / A2A)</h3>
+
+  <pre><code class="language-python" set:html={codePeerToPeer}></code></pre>
+
+  <p>
+    Agents communicate directly, claim tasks from a shared pool, and coordinate without routing everything through a
+    central point. Claude Code's Agent Teams is one implementation; Google's
+    <a href="https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/" target="_blank" rel="noopener noreferrer">Agent2Agent Protocol (A2A)</a>
+    provides a standardized version for cross-vendor interoperability, backed by 50+ technology partners.
+  </p>
+
+  <p>
+    <strong>When to use:</strong> Cross-layer collaboration is essential, multiple perspectives improve quality, and
+    you can afford the token premium.
+  </p>
+
+  <h3>3. Sequential Pipeline</h3>
+
+  <pre><code class="language-python" set:html={codePipeline}></code></pre>
+
+  <p>
+    A fixed-order assembly line where each agent transforms data and passes it to the next. Google ADK and Microsoft's
+    architecture catalog both formalize this pattern. It's the simplest multi-agent architecture and the easiest to debug.
+  </p>
+
+  <p>
+    <strong>When to use:</strong> Linear data transformation (parse → analyze → format), progressive refinement
+    (draft → review → polish), or any workflow where stages have clear input/output contracts.
+  </p>
+
+  <h3>4. Blackboard Architecture</h3>
+
+  <pre><code class="language-python" set:html={codeBlackboard}></code></pre>
+
+  <p>
+    Originated in the 1980s for speech recognition and now being revived for LLM-based systems. Agents collaborate
+    through a shared knowledge base without direct communication. Each agent reads from and writes to the blackboard
+    independently, and a control unit determines which agent acts next. A
+    <a href="https://arxiv.org/abs/2507.01701" target="_blank" rel="noopener noreferrer">2025 arXiv paper</a> explores
+    this for LLM multi-agent systems with 9 specialized agents.
+  </p>
+
+  <p>
+    <strong>When to use:</strong> Problems where solutions emerge from accumulated partial contributions, asynchronous
+    collaboration, and agents that don't need to know about each other.
+  </p>
+
+  <h3>5. Hierarchical Teams</h3>
+
+  <p>
+    A tree-like structure with multiple levels of supervision. Top-level supervisors manage team-level supervisors, who
+    manage worker agents. LangGraph supports
+    <a href="https://langchain-ai.github.io/langgraph/tutorials/multi_agent/hierarchical_agent_teams/" target="_blank" rel="noopener noreferrer">hierarchical agent teams</a>
+    natively.
+  </p>
+
+  <p>
+    <strong>When to use:</strong> Large-scale complex systems that mirror organizational structures. But beware: research
+    from the Puppeteer framework found that static hierarchies waste resources on unnecessary branches, leading them to
+    develop RL-learned orchestrators that dynamically skip low-value subtrees.
+  </p>
+
+  <h3>6. Mixture-of-Experts Delegation</h3>
+
+  <p>
+    Borrowed from the neural network architecture: a router mechanism directs inputs to the most appropriate specialist
+    agent. Only the relevant "expert" is activated, making this the most token-efficient multi-agent pattern. Google ADK
+    implements this as a coordinator agent managing specialist sub-agents with routing logic.
+  </p>
+
+  <p>
+    A more sophisticated variant, <a href="https://arxiv.org/html/2406.04692v1" target="_blank" rel="noopener noreferrer">Mixture-of-Agents (MoA)</a>,
+    uses layered LLM agents where each agent in a layer takes all outputs from the previous layer as auxiliary input,
+    creating iteratively refined responses.
+  </p>
+
+  <p>
+    <strong>When to use:</strong> Routing to specialists based on input classification. Ideal when you have clearly
+    delineated domains (legal vs. financial vs. technical queries) and want minimal token waste.
+  </p>
+
+  <h3>7. Swarm Intelligence</h3>
+
+  <p>
+    Inspired by biological swarms. Agents follow simple local rules, and complex global behavior emerges. OpenAI explored
+    this with the Swarm framework (now succeeded by the OpenAI Agents SDK). The
+    <a href="https://swarms.ai" target="_blank" rel="noopener noreferrer">Swarms framework</a> targets enterprise
+    applications with 36,000+ GitHub stars.
+  </p>
+
+  <p>
+    However, a
+    <a href="https://arxiv.org/abs/2506.14496" target="_blank" rel="noopener noreferrer">2025 research paper</a>
+    found that LLM-powered swarms require roughly <strong>300x more computation time</strong> than classical counterparts,
+    questioning whether "LLM-powered swarms" are a genuine frontier or a conceptual stretch.
+  </p>
+
+  <p>
+    <strong>When to use:</strong> Exploration-heavy tasks where resilience matters more than efficiency. In practice,
+    the token economics make true swarming prohibitively expensive for most applications.
+  </p>
+
+  <h2>The Numbers: Token Cost and Failure Rates</h2>
+
+  <pre><code set:html={codeTokenComparison}></code></pre>
+
+  <p>
+    The token economics are stark. Community-reported costs for Claude Code specifically:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Approach</th>
+        <th>Typical Token Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Solo session</td>
+        <td>~200k tokens</td>
+      </tr>
+      <tr>
+        <td>3 sub-agents</td>
+        <td>~440k tokens</td>
+      </tr>
+      <tr>
+        <td>3-person team</td>
+        <td>~800k tokens</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    Agent Teams roughly double the cost of equivalent sub-agent setups because each teammate is a full, persistent Claude
+    Code session (not a short-lived helper), and the messaging system adds per-message token overhead.
+  </p>
+
+  <h3>Failure Rates in Production</h3>
+
+  <p>
+    Research shows multi-agent LLM systems fail at <strong>41-86.7% rates in production</strong>. A
+    <a href="https://arxiv.org/pdf/2503.13657" target="_blank" rel="noopener noreferrer">systematic study</a> found
+    that nearly 79% of failures come from two categories:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Failure Category</th>
+        <th>% of Failures</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Specification Problems</td>
+        <td>41.8%</td>
+        <td>Role ambiguity, unclear task definitions, missing constraints</td>
+      </tr>
+      <tr>
+        <td>Coordination Failures</td>
+        <td>36.9%</td>
+        <td>Communication breakdowns, state sync issues, conflicting objectives</td>
+      </tr>
+      <tr>
+        <td>Verification Gaps</td>
+        <td>21.3%</td>
+        <td>Inadequate testing, missing validation mechanisms</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    The implication: <strong>most multi-agent failures are design problems, not infrastructure problems</strong>. Better
+    task specifications and communication protocols matter more than better models.
+  </p>
+
+  <div class="callout warning">
+    <strong>The communication tax:</strong> The
+    <a href="https://arxiv.org/html/2510.26585v1" target="_blank" rel="noopener noreferrer">AGENTTAXO framework</a>
+    introduced the concept of a "communication tax" -- the overhead from inter-agent interactions. Every extra message
+    compounds latency and cost almost quadratically with the number of communication rounds. This is the primary
+    reason why peer-to-peer architectures (Agent Teams) cost significantly more than hub-and-spoke patterns.
+  </div>
+
+  <h2>The Single-Agent vs Multi-Agent Debate</h2>
+
+  <p>
+    This became the central debate in the AI agent community in mid-2025 when Cognition AI published
+    <a href="https://cognition.ai/blog/dont-build-multi-agents" target="_blank" rel="noopener noreferrer">"Don't Build Multi-Agents"</a>
+    and Anthropic released details of their multi-agent research system on the very next day.
+  </p>
+
+  <h3>Cognition's Argument</h3>
+
+  <p>
+    Walden Yan argued that multi-agent architectures are inherently fragile due to <strong>insufficient context sharing</strong>
+    and <strong>conflicting implicit decisions</strong>. Parallel sub-agents make independent assumptions that create
+    downstream inconsistencies. Their recommendation: single-threaded linear agents as the default, with a specialized
+    compression model to summarize action histories for longer tasks.
+  </p>
+
+  <h3>Anthropic's Counter</h3>
+
+  <p>
+    Anthropic's multi-agent research system -- multiple Claude agents working in concert -- <strong>outperformed
+    single-agent systems by over 90%</strong> on certain research tasks. Their position: for inherently parallel work
+    (research, code review, exploration), multi-agent coordination provides measurable quality improvements.
+  </p>
+
+  <h3>The Synthesis</h3>
+
+  <p>
+    Despite the opposing headlines, both camps agree on the fundamental point: <strong>context management is the
+    primary determinant of agent reliability</strong>. The real question isn't "single vs. multi" but rather "how do
+    you maintain coherent context?" -- whether through a single agent's persistent memory or through carefully
+    engineered inter-agent communication protocols.
+  </p>
+
+  <blockquote>
+    <p>
+      "Activity doesn't always translate to value. The seductive appeal of parallel agents producing code quickly
+      can obscure whether that code actually solves the right problem."
+      -- <a href="https://addyosmani.com/blog/claude-code-agent-teams/" target="_blank" rel="noopener noreferrer">Addy Osmani</a>
+    </p>
+  </blockquote>
+
+  <p>
+    Phil Schmid (Hugging Face) and Microsoft's Cloud Adoption Framework both recommend <strong>starting with a single
+    agent</strong> and only adding complexity when needed. A single agent with well-designed tools is simpler to build,
+    reason about, and debug. A useful heuristic from the community:
+  </p>
+
+  <ul>
+    <li><strong>Read tasks</strong> (research, analysis, data gathering) → multi-agent works well, since tasks are easily parallelizable</li>
+    <li><strong>Write tasks</strong> (code generation, document creation) → single agent or sequential pipeline, since shared context is critical</li>
+    <li><strong>Mixed tasks</strong> → parallel read phase, then sequential write phase</li>
+  </ul>
+
+  <h2>Architecture Decision Matrix</h2>
+
+  <pre><code set:html={codeDecisionMatrix}></code></pre>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Architecture</th>
+        <th>Complexity</th>
+        <th>Token Efficiency</th>
+        <th>Parallelism</th>
+        <th>Debuggability</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Single Agent</td>
+        <td>Low</td>
+        <td>High</td>
+        <td>None</td>
+        <td>Excellent</td>
+      </tr>
+      <tr>
+        <td>Pipeline</td>
+        <td>Low-Med</td>
+        <td>Medium</td>
+        <td>None</td>
+        <td>Good</td>
+      </tr>
+      <tr>
+        <td>Hub-and-Spoke</td>
+        <td>Medium</td>
+        <td>Medium</td>
+        <td>Limited</td>
+        <td>Good</td>
+      </tr>
+      <tr>
+        <td>MoE Delegation</td>
+        <td>Medium</td>
+        <td>High</td>
+        <td>Selective</td>
+        <td>Good</td>
+      </tr>
+      <tr>
+        <td>Agent Teams (P2P)</td>
+        <td>High</td>
+        <td>Low</td>
+        <td>High</td>
+        <td>Difficult</td>
+      </tr>
+      <tr>
+        <td>Hierarchical</td>
+        <td>High</td>
+        <td>Low</td>
+        <td>Moderate</td>
+        <td>Moderate</td>
+      </tr>
+      <tr>
+        <td>Blackboard</td>
+        <td>Medium</td>
+        <td>Medium</td>
+        <td>Moderate</td>
+        <td>Moderate</td>
+      </tr>
+      <tr>
+        <td>Swarm</td>
+        <td>Very High</td>
+        <td>Very Low</td>
+        <td>Very High</td>
+        <td>Very Difficult</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Framework Landscape</h2>
+
+  <p>
+    The architecture you choose is often constrained by the framework you use. Here's how the major frameworks map
+    to these patterns:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Framework</th>
+        <th>Primary Pattern</th>
+        <th>Strengths</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Claude Code</strong></td>
+        <td>Hub-and-spoke + Agent Teams</td>
+        <td>Deep IDE integration, both patterns in one tool</td>
+      </tr>
+      <tr>
+        <td><strong>LangGraph</strong></td>
+        <td>Graph-based (any pattern)</td>
+        <td>Most flexible; supports supervisor, hierarchical, custom workflows</td>
+      </tr>
+      <tr>
+        <td><strong>CrewAI</strong></td>
+        <td>Role-based hub-and-spoke</td>
+        <td>Easiest onboarding, enterprise control plane</td>
+      </tr>
+      <tr>
+        <td><strong>AutoGen</strong></td>
+        <td>Conversational (group chat)</td>
+        <td>Strong human-in-the-loop, flexible role-playing</td>
+      </tr>
+      <tr>
+        <td><strong>Google ADK</strong></td>
+        <td>Event-driven (pipeline, MoE)</td>
+        <td>Native Vertex AI integration, A2A protocol support</td>
+      </tr>
+      <tr>
+        <td><strong>Semantic Kernel</strong></td>
+        <td>Multiple (all patterns)</td>
+        <td>Enterprise Azure integration, extensive pattern catalog</td>
+      </tr>
+      <tr>
+        <td><strong>OpenAI Agents SDK</strong></td>
+        <td>Sequential handoff</td>
+        <td>Simple API, lightweight, direct OpenAI integration</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Practical Recommendations</h2>
+
+  <h3>Start Simple, Scale Up</h3>
+
+  <p>
+    The most consistent advice across the research: <strong>start with a single agent</strong>. Add sub-agents when
+    you hit context window limits or need parallelism. Graduate to Agent Teams only when you have evidence that
+    cross-agent collaboration would prevent rework.
+  </p>
+
+  <h3>When Agent Teams Make Sense</h3>
+
+  <p>
+    The strongest community-validated use cases for Agent Teams:
+  </p>
+
+  <ol>
+    <li><strong>Parallel code review:</strong> Spawning specialized reviewers (security, performance, test coverage) who each apply a different lens to the same PR</li>
+    <li><strong>Adversarial debugging:</strong> Multiple agents investigating different failure theories simultaneously, actively trying to disprove each other</li>
+    <li><strong>Cross-layer feature development:</strong> Frontend, backend, and test agents each owning their layer with direct communication about interface contracts</li>
+    <li><strong>Research exploration:</strong> Multiple approaches investigated simultaneously with findings shared directly between researchers</li>
+  </ol>
+
+  <h3>When to Avoid Agent Teams</h3>
+
+  <ul>
+    <li><strong>Sequential tasks:</strong> If step 2 depends on step 1's output, a pipeline or single agent is simpler and cheaper</li>
+    <li><strong>Budget-constrained work:</strong> The ~2x token premium over sub-agents adds up quickly</li>
+    <li><strong>Single-file changes:</strong> Two teammates editing the same file leads to overwrites -- the architecture requires careful file ownership boundaries</li>
+    <li><strong>Tasks requiring determinism:</strong> Peer-to-peer coordination introduces non-determinism in message ordering and task claiming</li>
+  </ul>
+
+  <h3>Known Limitations</h3>
+
+  <p>
+    Agent Teams is still a research preview with real constraints:
+  </p>
+
+  <ul>
+    <li>No session resumption with in-process teammates (<code>/resume</code> doesn't restore team state)</li>
+    <li>One team per session; no nested teams</li>
+    <li>The lead is fixed for the team's lifetime (no leadership transfer)</li>
+    <li>Split pane display requires tmux or iTerm2 (not supported in VS Code terminal or Windows Terminal)</li>
+    <li>Task status can lag -- teammates sometimes fail to mark tasks complete, blocking dependents</li>
+  </ul>
+
+  <h2>Looking Ahead</h2>
+
+  <p>
+    Agent Teams represents one answer to a question the entire industry is grappling with: <strong>how should AI agents
+    collaborate?</strong> Google's A2A protocol, Microsoft's orchestration patterns, and the open-source frameworks
+    (CrewAI, LangGraph, AutoGen) are all converging on the same problem from different angles.
+  </p>
+
+  <p>
+    The likely future isn't one architecture winning but rather <strong>composable patterns</strong> -- using pipelines
+    for deterministic stages, hub-and-spoke for clear delegation, and peer-to-peer teams for genuinely collaborative
+    work, all within the same system. The Agent Teams primitive is a building block, not a universal solution.
+  </p>
+
+  <p>
+    What remains constant across all architectures: the quality of your task specifications, the clarity of your agent
+    roles, and the rigor of your verification matter far more than which coordination pattern you choose. Get those
+    right, and the architecture becomes a force multiplier. Get them wrong, and no amount of agent-to-agent messaging
+    will save you.
+  </p>
+
+  <h2>Sources</h2>
+
+  <ul>
+    <li><a href="https://code.claude.com/docs/en/agent-teams" target="_blank" rel="noopener noreferrer">Anthropic: Orchestrate Teams of Claude Code Sessions (Official Docs)</a></li>
+    <li><a href="https://www.anthropic.com/engineering/building-c-compiler" target="_blank" rel="noopener noreferrer">Anthropic Engineering: Building a C Compiler with Agent Teams</a></li>
+    <li><a href="https://techcrunch.com/2026/02/05/anthropic-releases-opus-4-6-with-new-agent-teams/" target="_blank" rel="noopener noreferrer">TechCrunch: Anthropic Releases Opus 4.6 with Agent Teams</a></li>
+    <li><a href="https://addyosmani.com/blog/claude-code-agent-teams/" target="_blank" rel="noopener noreferrer">Addy Osmani: Claude Code Swarms</a></li>
+    <li><a href="https://cognition.ai/blog/dont-build-multi-agents" target="_blank" rel="noopener noreferrer">Cognition AI: Don't Build Multi-Agents</a></li>
+    <li><a href="https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns" target="_blank" rel="noopener noreferrer">Microsoft: AI Agent Design Patterns</a></li>
+    <li><a href="https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/" target="_blank" rel="noopener noreferrer">Google: A2A Protocol Announcement</a></li>
+    <li><a href="https://blog.langchain.com/choosing-the-right-multi-agent-architecture/" target="_blank" rel="noopener noreferrer">LangChain: Choosing the Right Multi-Agent Architecture</a></li>
+    <li><a href="https://arxiv.org/pdf/2503.13657" target="_blank" rel="noopener noreferrer">arXiv: Why Do Multi-Agent LLM Systems Fail?</a></li>
+    <li><a href="https://arxiv.org/html/2510.26585v1" target="_blank" rel="noopener noreferrer">arXiv: AGENTTAXO -- Communication Tax in Multi-Agent Systems</a></li>
+    <li><a href="https://arxiv.org/abs/2506.14496" target="_blank" rel="noopener noreferrer">arXiv: LLM-Powered Swarms -- New Frontier or Conceptual Stretch?</a></li>
+    <li><a href="https://arxiv.org/abs/2507.01701" target="_blank" rel="noopener noreferrer">arXiv: LLM Multi-Agent Systems Based on Blackboard Architecture</a></li>
+    <li><a href="https://arxiv.org/html/2406.04692v1" target="_blank" rel="noopener noreferrer">arXiv: Mixture-of-Agents Enhances LLM Capabilities</a></li>
+    <li><a href="https://www.philschmid.de/single-vs-multi-agents" target="_blank" rel="noopener noreferrer">Phil Schmid: Single vs Multi-Agent Systems</a></li>
+    <li><a href="https://paddo.dev/blog/claude-code-hidden-swarm/" target="_blank" rel="noopener noreferrer">paddo.dev: Claude Code's Hidden Multi-Agent System</a></li>
+    <li><a href="https://www.augmentcode.com/guides/why-multi-agent-llm-systems-fail-and-how-to-fix-them" target="_blank" rel="noopener noreferrer">Augment Code: Why Multi-Agent LLM Systems Fail</a></li>
+  </ul>
+</BlogLayout>

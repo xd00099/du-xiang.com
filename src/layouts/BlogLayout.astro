@@ -8,6 +8,8 @@ interface Props {
   tags?: string[];
 }
 
+import ThemeToggle from '../components/common/ThemeToggle.astro';
+
 const { title, description, date, readTime, author = "Du Xiang", tags = [] } = Astro.props;
 ---
 
@@ -34,6 +36,15 @@ const { title, description, date, readTime, author = "Du Xiang", tags = [] } = A
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
     <title>{title} | Du Xiang</title>
+
+    <script is:inline>
+      (function() {
+        var stored = localStorage.getItem('theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = stored || (prefersDark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      })();
+    </script>
   </head>
   <body>
     <header class="blog-header">
@@ -44,6 +55,7 @@ const { title, description, date, readTime, author = "Du Xiang", tags = [] } = A
         </svg>
         Back to Home
       </a>
+      <ThemeToggle />
     </header>
 
     <main class="blog-main">
@@ -94,8 +106,9 @@ const { title, description, date, readTime, author = "Du Xiang", tags = [] } = A
     height: 60px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     padding: 0 var(--space-6);
-    background: rgba(0, 0, 0, 0.8);
+    background: var(--color-overlay-medium);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--color-border);
@@ -216,14 +229,14 @@ const { title, description, date, readTime, author = "Du Xiang", tags = [] } = A
   }
 
   .article-content a {
-    color: #a78bfa;
+    color: var(--color-link);
     text-decoration: underline;
     text-underline-offset: 3px;
     transition: color var(--duration-fast) var(--ease-out);
   }
 
   .article-content a:hover {
-    color: #c4b5fd;
+    color: var(--color-link-hover);
   }
 
   .article-content ul,
@@ -243,7 +256,7 @@ const { title, description, date, readTime, author = "Du Xiang", tags = [] } = A
   .article-content blockquote {
     margin: var(--space-8) 0;
     padding: var(--space-4) var(--space-6);
-    border-left: 3px solid #a78bfa;
+    border-left: 3px solid var(--color-link);
     background: var(--color-bg-elevated);
     border-radius: 0 8px 8px 0;
     font-style: italic;
@@ -263,13 +276,13 @@ const { title, description, date, readTime, author = "Du Xiang", tags = [] } = A
     background: var(--color-bg-elevated);
     padding: 0.2em 0.4em;
     border-radius: 4px;
-    color: #f472b6;
+    color: var(--color-code-inline);
   }
 
   .article-content pre {
     margin: var(--space-6) 0;
     padding: var(--space-6);
-    background: #0d1117;
+    background: var(--color-code-bg);
     border: 1px solid var(--color-border);
     border-radius: 12px;
     overflow-x: auto;
@@ -280,7 +293,7 @@ const { title, description, date, readTime, author = "Du Xiang", tags = [] } = A
   .article-content pre code {
     background: none;
     padding: 0;
-    color: #e6edf3;
+    color: var(--color-code-text);
   }
 
   /* Images */
@@ -339,7 +352,7 @@ const { title, description, date, readTime, author = "Du Xiang", tags = [] } = A
   }
 
   .callout.insight {
-    border-left: 3px solid #a78bfa;
+    border-left: 3px solid var(--color-link);
   }
 
   .callout.warning {
