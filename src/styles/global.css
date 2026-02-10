@@ -1,27 +1,90 @@
 /* ==========================================
-   Design System - Clean & Modern (OpenAI-inspired)
+   Design System - Premium Dark/Light Theme
    ========================================== */
 
 :root {
-  /* Colors - Minimal Dark Theme */
+  /* Colors - Rich Dark Theme (default) */
   --color-bg: #000000;
   --color-bg-subtle: #0a0a0a;
   --color-bg-elevated: #111111;
   --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-hover: rgba(255, 255, 255, 0.16);
 
   /* Text Colors - High Contrast */
   --color-text: #ffffff;
   --color-text-secondary: rgba(255, 255, 255, 0.6);
   --color-text-muted: rgba(255, 255, 255, 0.4);
 
-  /* Accent - Single, Subtle */
+  /* Accent Palette */
   --color-accent: #10a37f;
   --color-accent-hover: #1a7f64;
+  --color-accent-indigo: #6366f1;
+  --color-accent-violet: #8b5cf6;
+  --color-accent-teal: #14b8a6;
+  --color-accent-amber: #f59e0b;
+  --color-accent-rose: #f43f5e;
 
-  /* Typography - Clean Sans */
+  /* Gradient presets */
+  --gradient-indigo: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --gradient-teal: linear-gradient(135deg, #10a37f 0%, #14b8a6 100%);
+  --gradient-warm: linear-gradient(135deg, #f59e0b 0%, #f43f5e 100%);
+  --gradient-subtle: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.05) 100%);
+
+  /* Semantic surfaces & overlays */
+  --color-surface-glass: rgba(17, 17, 17, 0.8);
+  --color-surface-glass-hover: rgba(17, 17, 17, 0.95);
+  --color-surface-glass-light: rgba(18, 18, 18, 0.85);
+  --color-overlay-full: rgba(0, 0, 0, 0.9);
+  --color-overlay-medium: rgba(0, 0, 0, 0.8);
+  --color-overlay-heavy: rgba(0, 0, 0, 0.95);
+  --color-overlay-arrow: rgba(0, 0, 0, 0.6);
+  --color-shadow-strong: rgba(0, 0, 0, 0.3);
+  --color-shadow-medium: rgba(0, 0, 0, 0.2);
+  --color-hover-fill: rgba(255, 255, 255, 0.05);
+  --color-hover-fill-subtle: rgba(255, 255, 255, 0.03);
+  --color-soft-border: rgba(255, 255, 255, 0.1);
+  --color-soft-border-inner: rgba(255, 255, 255, 0.06);
+
+  /* Scrollbar & selection */
+  --color-scrollbar: rgba(255, 255, 255, 0.1);
+  --color-scrollbar-hover: rgba(255, 255, 255, 0.2);
+  --color-selection: rgba(99, 102, 241, 0.3);
+
+  /* Decorative */
+  --color-vignette: rgba(0, 0, 0, 0.4);
+  --color-watermark: rgba(255, 255, 255, 0.02);
+  --noise-opacity: 0.03;
+  --ambient-orb-opacity: 0.07;
+  --scene-opacity: 0.5;
+
+  /* Gradient text */
+  --gradient-text-start: #ffffff;
+  --gradient-text-end: rgba(255, 255, 255, 0.7);
+  --gradient-text-end-muted: rgba(255, 255, 255, 0.6);
+
+  /* Code & links */
+  --color-code-bg: #0d1117;
+  --color-code-text: #e6edf3;
+  --color-code-inline: #f472b6;
+  --color-link: #a78bfa;
+  --color-link-hover: #c4b5fd;
+
+  /* Logo */
+  --logo-bg: linear-gradient(135deg, #fff 0%, #a0a0a0 100%);
+  --logo-text: #000;
+
+  /* Avatar */
+  --avatar-bg: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  --avatar-border: rgba(99, 102, 241, 0.2);
+
+  /* Button primary hover glow */
+  --btn-primary-glow: rgba(255, 255, 255, 0.15);
+  --btn-glow-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
+
+  /* Typography */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-  /* Type Scale - Larger, Bolder */
+  /* Type Scale */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
@@ -34,7 +97,7 @@
   --text-6xl: 4.5rem;
   --text-7xl: 6rem;
 
-  /* Spacing - Generous */
+  /* Spacing */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -63,6 +126,88 @@
 }
 
 /* ==========================================
+   Light Theme Overrides
+   ========================================== */
+
+:root[data-theme="light"] {
+  --color-bg: #ffffff;
+  --color-bg-subtle: #f8f8fa;
+  --color-bg-elevated: #f0f0f3;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border-hover: rgba(0, 0, 0, 0.16);
+
+  --color-text: #1a1a2e;
+  --color-text-secondary: rgba(0, 0, 0, 0.6);
+  --color-text-muted: rgba(0, 0, 0, 0.4);
+
+  --color-accent: #0d8f6f;
+  --color-accent-hover: #0b7a5e;
+  --color-accent-indigo: #4f46e5;
+  --color-accent-violet: #7c3aed;
+  --color-accent-teal: #0d9488;
+  --color-accent-amber: #d97706;
+  --color-accent-rose: #e11d48;
+
+  --gradient-subtle: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(124, 58, 237, 0.03) 100%);
+
+  --color-surface-glass: rgba(255, 255, 255, 0.85);
+  --color-surface-glass-hover: rgba(255, 255, 255, 0.95);
+  --color-surface-glass-light: rgba(255, 255, 255, 0.9);
+  --color-overlay-full: rgba(255, 255, 255, 0.95);
+  --color-overlay-medium: rgba(255, 255, 255, 0.9);
+  --color-overlay-heavy: rgba(255, 255, 255, 0.97);
+  --color-overlay-arrow: rgba(255, 255, 255, 0.8);
+  --color-shadow-strong: rgba(0, 0, 0, 0.08);
+  --color-shadow-medium: rgba(0, 0, 0, 0.05);
+  --color-hover-fill: rgba(0, 0, 0, 0.04);
+  --color-hover-fill-subtle: rgba(0, 0, 0, 0.02);
+  --color-soft-border: rgba(0, 0, 0, 0.08);
+  --color-soft-border-inner: rgba(0, 0, 0, 0.04);
+
+  --color-scrollbar: rgba(0, 0, 0, 0.1);
+  --color-scrollbar-hover: rgba(0, 0, 0, 0.2);
+  --color-selection: rgba(79, 70, 229, 0.2);
+
+  --color-vignette: rgba(0, 0, 0, 0.03);
+  --color-watermark: rgba(0, 0, 0, 0.03);
+  --noise-opacity: 0.015;
+  --ambient-orb-opacity: 0.05;
+  --scene-opacity: 0.2;
+
+  --gradient-text-start: #1a1a2e;
+  --gradient-text-end: rgba(26, 26, 46, 0.7);
+  --gradient-text-end-muted: rgba(26, 26, 46, 0.6);
+
+  --color-code-bg: #f6f8fa;
+  --color-code-text: #24292f;
+  --color-code-inline: #cf222e;
+  --color-link: #7c3aed;
+  --color-link-hover: #6d28d9;
+
+  --logo-bg: linear-gradient(135deg, #1a1a2e 0%, #444 100%);
+  --logo-text: #fff;
+
+  --avatar-bg: linear-gradient(135deg, #e8e8f0 0%, #d8d8e8 100%);
+  --avatar-border: rgba(79, 70, 229, 0.2);
+
+  --btn-primary-glow: rgba(0, 0, 0, 0.1);
+  --btn-glow-bg: linear-gradient(135deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0));
+}
+
+/* ==========================================
+   Theme Transition (only after page load)
+   ========================================== */
+
+html.theme-ready,
+html.theme-ready *,
+html.theme-ready *::before,
+html.theme-ready *::after {
+  transition-property: background-color, color, border-color, box-shadow, opacity;
+  transition-duration: 0.3s;
+  transition-timing-function: ease;
+}
+
+/* ==========================================
    Reset & Base
    ========================================== */
 
@@ -85,6 +230,101 @@ body {
   color: var(--color-text-secondary);
   background: var(--color-bg);
   overflow-x: hidden;
+  position: relative;
+}
+
+/* ==========================================
+   Noise Texture Overlay
+   ========================================== */
+
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: var(--noise-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* ==========================================
+   Ambient Gradient Orbs
+   ========================================== */
+
+.ambient-orbs {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ambient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: var(--ambient-orb-opacity);
+  animation: orbFloat 20s ease-in-out infinite;
+}
+
+.ambient-orb--1 {
+  width: 600px;
+  height: 600px;
+  background: var(--color-accent-indigo);
+  top: -200px;
+  right: -100px;
+  animation-delay: 0s;
+}
+
+.ambient-orb--2 {
+  width: 500px;
+  height: 500px;
+  background: var(--color-accent-violet);
+  bottom: -150px;
+  left: -100px;
+  animation-delay: -7s;
+}
+
+.ambient-orb--3 {
+  width: 400px;
+  height: 400px;
+  background: var(--color-accent-teal);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation-delay: -14s;
+  opacity: 0.04;
+}
+
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(30px, -40px) scale(1.05); }
+  50% { transform: translate(-20px, 20px) scale(0.95); }
+  75% { transform: translate(15px, 35px) scale(1.02); }
+}
+
+.ambient-orb--3 {
+  animation-name: orbFloat3;
+}
+
+@keyframes orbFloat3 {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  25% { transform: translate(calc(-50% + 30px), calc(-50% - 40px)) scale(1.05); }
+  50% { transform: translate(calc(-50% - 20px), calc(-50% + 20px)) scale(0.95); }
+  75% { transform: translate(calc(-50% + 15px), calc(-50% + 35px)) scale(1.02); }
+}
+
+/* ==========================================
+   Vignette
+   ========================================== */
+
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 50%, var(--color-vignette) 100%);
 }
 
 /* ==========================================
@@ -131,11 +371,15 @@ a {
 .section {
   padding: var(--space-32) 0;
   margin-left: var(--sidebar-width);
+  position: relative;
+  z-index: 2;
 }
 
 .section-lg {
   padding: var(--space-40) 0;
   margin-left: var(--sidebar-width);
+  position: relative;
+  z-index: 2;
 }
 
 @media (max-width: 768px) {
@@ -147,7 +391,23 @@ a {
 }
 
 /* ==========================================
-   Buttons - Minimal
+   Section Backgrounds - Visual Rhythm
+   ========================================== */
+
+.section-bg-shift {
+  position: relative;
+}
+
+.section-bg-shift::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.5;
+}
+
+/* ==========================================
+   Buttons - Minimal with Glow
    ========================================== */
 
 .btn {
@@ -164,6 +424,7 @@ a {
   cursor: pointer;
   transition: all var(--duration-base) var(--ease-out);
   text-decoration: none;
+  position: relative;
 }
 
 .btn-primary {
@@ -174,6 +435,7 @@ a {
 .btn-primary:hover {
   opacity: 0.85;
   transform: translateY(-1px);
+  box-shadow: 0 4px 20px var(--btn-primary-glow);
 }
 
 .btn-secondary {
@@ -183,8 +445,9 @@ a {
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--color-hover-fill);
+  border-color: var(--color-border-hover);
+  box-shadow: 0 4px 20px var(--color-shadow-medium);
 }
 
 .btn-ghost {
@@ -198,19 +461,23 @@ a {
 }
 
 /* ==========================================
-   Cards - Clean
+   Cards - Glassmorphic
    ========================================== */
 
 .card {
-  background: var(--color-bg-elevated);
+  background: var(--color-surface-glass);
   border: 1px solid var(--color-border);
   border-radius: 16px;
   overflow: hidden;
   transition: all var(--duration-base) var(--ease-out);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .card:hover {
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--color-border-hover);
+  box-shadow: 0 8px 32px var(--color-shadow-strong),
+              0 0 0 1px var(--color-hover-fill);
 }
 
 /* ==========================================
@@ -220,13 +487,36 @@ a {
 .fade-in {
   opacity: 0;
   transform: translateY(20px);
-  transition: opacity var(--duration-slow) var(--ease-out),
-              transform var(--duration-slow) var(--ease-out);
+  transition: opacity 0.7s var(--ease-out),
+              transform 0.7s var(--ease-out);
 }
 
 .fade-in.visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* ==========================================
+   Section Label - Decorative
+   ========================================== */
+
+.label {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.label::before {
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 1px;
+  background: var(--gradient-indigo);
 }
 
 /* ==========================================
@@ -249,7 +539,8 @@ a {
    ========================================== */
 
 ::selection {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-selection);
+  color: var(--color-text);
 }
 
 ::-webkit-scrollbar {
@@ -261,12 +552,12 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--color-scrollbar);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-scrollbar-hover);
 }
 
 /* ==========================================
@@ -279,4 +570,5 @@ a {
     transition-duration: 0.01ms !important;
   }
   html { scroll-behavior: auto; }
+  .ambient-orb { animation: none !important; }
 }
