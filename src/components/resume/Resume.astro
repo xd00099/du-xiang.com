@@ -45,17 +45,23 @@ const experience = [
       <h2>Work & Education</h2>
     </div>
 
-    <div class="work-list">
+    <div class="timeline">
+      <div class="timeline-line" aria-hidden="true"></div>
       {experience.map((item, i) => (
-        <div class="work-item fade-in" style={`--delay: ${i * 0.05}s`}>
-          <div class="work-meta">
-            <span class="work-period">{item.period}</span>
-            <span class="work-type">{item.type}</span>
+        <div class={`timeline-item fade-in ${i === 0 ? 'timeline-item--featured' : ''}`} style={`--delay: ${i * 0.08}s`}>
+          <div class="timeline-node" aria-hidden="true">
+            <div class={`timeline-dot ${item.type === 'work' ? 'timeline-dot--work' : 'timeline-dot--edu'}`}></div>
           </div>
-          <div class="work-details">
-            <h3 class="work-role">{item.role}</h3>
-            <p class="work-company">{item.company}</p>
-            <p class="work-description">{item.description}</p>
+          <div class="timeline-card">
+            <div class="timeline-meta">
+              <span class="work-period">{item.period}</span>
+              <span class={`work-type ${item.type === 'work' ? 'work-type--work' : 'work-type--edu'}`}>{item.type}</span>
+            </div>
+            <div class="timeline-details">
+              <h3 class="work-role">{item.role}</h3>
+              <p class="work-company">{item.company}</p>
+              <p class="work-description">{item.description}</p>
+            </div>
           </div>
         </div>
       ))}
@@ -80,29 +86,114 @@ const experience = [
     font-size: var(--text-4xl);
   }
 
-  .work-list {
-    display: flex;
-    flex-direction: column;
+  /* Timeline */
+  .timeline {
+    position: relative;
+    padding-left: 40px;
   }
 
-  .work-item {
+  .timeline-line {
+    position: absolute;
+    left: 11px;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: linear-gradient(180deg,
+      rgba(99, 102, 241, 0.4) 0%,
+      rgba(139, 92, 246, 0.2) 60%,
+      rgba(20, 184, 166, 0.3) 100%
+    );
+  }
+
+  .timeline-item {
+    position: relative;
     display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: var(--space-10);
-    padding: var(--space-8) 0;
-    border-bottom: 1px solid var(--color-border);
+    grid-template-columns: 1fr;
+    padding-bottom: var(--space-8);
     transition: opacity var(--duration-slow) var(--ease-out);
     transition-delay: var(--delay);
   }
 
-  .work-item:first-child {
-    border-top: 1px solid var(--color-border);
+  .timeline-item:last-child {
+    padding-bottom: 0;
   }
 
-  .work-meta {
+  /* Node */
+  .timeline-node {
+    position: absolute;
+    left: -40px;
+    top: 6px;
+    width: 23px;
     display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .timeline-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 2px solid;
+    background: var(--color-bg);
+    transition: all var(--duration-base) var(--ease-out);
+    position: relative;
+  }
+
+  .timeline-dot--work {
+    border-color: var(--color-accent-indigo);
+    box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
+  }
+
+  .timeline-dot--edu {
+    border-color: var(--color-accent-teal);
+    box-shadow: 0 0 8px rgba(20, 184, 166, 0.3);
+  }
+
+  .timeline-item:hover .timeline-dot--work {
+    background: var(--color-accent-indigo);
+    box-shadow: 0 0 16px rgba(99, 102, 241, 0.5);
+  }
+
+  .timeline-item:hover .timeline-dot--edu {
+    background: var(--color-accent-teal);
+    box-shadow: 0 0 16px rgba(20, 184, 166, 0.5);
+  }
+
+  /* Featured (first item) */
+  .timeline-item--featured .timeline-dot {
+    width: 13px;
+    height: 13px;
+  }
+
+  /* Card */
+  .timeline-card {
+    padding: var(--space-4) 0;
+    border-bottom: 1px solid var(--color-border);
+    transition: all var(--duration-base) var(--ease-out);
+  }
+
+  .timeline-item:last-child .timeline-card {
+    border-bottom: none;
+  }
+
+  .timeline-item--featured .timeline-card {
+    border-bottom: none;
+    background: rgba(99, 102, 241, 0.04);
+    border: 1px solid rgba(99, 102, 241, 0.15);
+    border-radius: 16px;
+    padding: var(--space-6);
+  }
+
+  .timeline-item--featured:hover .timeline-card {
+    border-color: rgba(99, 102, 241, 0.25);
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.08);
+  }
+
+  .timeline-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-3);
   }
 
   .work-period {
@@ -113,19 +204,35 @@ const experience = [
 
   .work-type {
     font-size: var(--text-xs);
-    color: var(--color-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     padding: var(--space-1) var(--space-3);
-    border: 1px solid var(--color-border);
     border-radius: 9999px;
     width: fit-content;
+    font-weight: 500;
+  }
+
+  .work-type--work {
+    color: var(--color-accent-indigo);
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+  }
+
+  .work-type--edu {
+    color: var(--color-accent-teal);
+    background: rgba(20, 184, 166, 0.1);
+    border: 1px solid rgba(20, 184, 166, 0.2);
   }
 
   .work-role {
     font-size: var(--text-xl);
     font-weight: 500;
     margin-bottom: var(--space-1);
+  }
+
+  .timeline-item--featured .work-role {
+    font-size: var(--text-2xl);
+    font-weight: 600;
   }
 
   .work-company {
@@ -143,15 +250,16 @@ const experience = [
   }
 
   @media (max-width: 640px) {
-    .work-item {
-      grid-template-columns: 1fr;
-      gap: var(--space-4);
+    .timeline {
+      padding-left: 32px;
     }
 
-    .work-meta {
-      flex-direction: row;
-      align-items: center;
-      gap: var(--space-4);
+    .timeline-node {
+      left: -32px;
+    }
+
+    .timeline-item--featured .timeline-card {
+      padding: var(--space-4);
     }
   }
 </style>

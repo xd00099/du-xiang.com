@@ -175,19 +175,30 @@ import HeroCanvas from './Scene.tsx';
     justify-content: center;
     overflow: hidden;
     margin-left: 72px;
+    z-index: 2;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 30% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 80%, rgba(139, 92, 246, 0.06) 0%, transparent 50%);
+    z-index: 0;
   }
 
   .hero-bg {
     position: absolute;
     inset: 0;
     z-index: 0;
-    opacity: 0.3;
+    opacity: var(--scene-opacity);
   }
 
   .hero-content {
     position: relative;
     z-index: 1;
     padding: var(--space-8);
+    padding-bottom: var(--space-24);
     width: 100%;
     max-width: 650px;
   }
@@ -199,16 +210,28 @@ import HeroCanvas from './Scene.tsx';
 
   /* Chat Window */
   .chat-window {
-    background: rgba(18, 18, 18, 0.9);
-    border: 1px solid var(--color-border);
-    border-radius: 16px;
+    background: var(--color-surface-glass-light);
+    border: 1px solid var(--color-soft-border);
+    border-radius: 20px;
     overflow: hidden;
     box-shadow:
       0 0 0 1px rgba(255,255,255,0.05),
-      0 20px 50px -10px rgba(0,0,0,0.5),
-      0 0 100px -20px rgba(139, 92, 246, 0.15);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+      0 25px 60px -15px rgba(0,0,0,0.6),
+      0 0 120px -30px rgba(99, 102, 241, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    transition: transform var(--duration-slow) var(--ease-out),
+                box-shadow var(--duration-slow) var(--ease-out);
+  }
+
+  .chat-window:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.08),
+      0 30px 70px -15px rgba(0,0,0,0.7),
+      0 0 140px -30px rgba(99, 102, 241, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
   /* Window Header */
@@ -216,9 +239,9 @@ import HeroCanvas from './Scene.tsx';
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: var(--space-3) var(--space-4);
-    background: rgba(255,255,255,0.02);
-    border-bottom: 1px solid var(--color-border);
+    padding: var(--space-3) var(--space-5, 1.25rem);
+    background: var(--color-hover-fill-subtle);
+    border-bottom: 1px solid var(--color-soft-border-inner);
   }
 
   .window-controls {
@@ -324,6 +347,7 @@ import HeroCanvas from './Scene.tsx';
     border-radius: 18px 18px 4px 18px;
     max-width: 280px;
     font-size: var(--text-base);
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.25);
   }
 
   .ai-message {
@@ -334,8 +358,8 @@ import HeroCanvas from './Scene.tsx';
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-    border: 1px solid var(--color-border);
+    background: var(--avatar-bg);
+    border: 1px solid var(--avatar-border);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -343,6 +367,7 @@ import HeroCanvas from './Scene.tsx';
     font-weight: 600;
     color: var(--color-text);
     flex-shrink: 0;
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.1);
   }
 
   .ai-message .message-content {
@@ -487,7 +512,8 @@ import HeroCanvas from './Scene.tsx';
 
   .send-btn.active:hover {
     transform: scale(1.05);
-    box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.5),
+                0 0 40px rgba(99, 102, 241, 0.2);
   }
 
   .input-hint {
@@ -504,14 +530,14 @@ import HeroCanvas from './Scene.tsx';
 
   /* Joke message link styling */
   #joke-message .message-bubble a {
-    color: #a78bfa;
+    color: var(--color-link);
     text-decoration: underline;
     text-underline-offset: 2px;
     transition: color 0.2s ease;
   }
 
   #joke-message .message-bubble a:hover {
-    color: #c4b5fd;
+    color: var(--color-link-hover);
   }
 
   /* Floating Badges */
@@ -530,15 +556,26 @@ import HeroCanvas from './Scene.tsx';
     align-items: center;
     gap: var(--space-2);
     padding: var(--space-2) var(--space-3);
-    background: rgba(18, 18, 18, 0.9);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
+    background: var(--color-surface-glass-light);
+    border: 1px solid var(--color-soft-border);
+    border-radius: 10px;
     font-size: var(--text-xs);
     color: var(--color-text-secondary);
     white-space: nowrap;
     opacity: 0;
     transform: translateX(-10px);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    transition: border-color var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-fast) var(--ease-out);
+  }
+
+  .badge:hover {
+    border-color: rgba(99, 102, 241, 0.3);
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .badge-1 { animation: badgeIn 0.4s ease forwards; animation-delay: 3.5s; }
@@ -573,7 +610,7 @@ import HeroCanvas from './Scene.tsx';
   /* Scroll Hint */
   .scroll-hint {
     position: absolute;
-    bottom: var(--space-10);
+    bottom: var(--space-6);
     left: calc(50% + 36px);
     transform: translateX(-50%);
     display: flex;

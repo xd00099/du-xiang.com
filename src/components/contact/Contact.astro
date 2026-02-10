@@ -2,7 +2,13 @@
 
 ---
 
-<section class="section-lg" id="contact">
+<section class="contact-section" id="contact">
+  <div class="contact-bg" aria-hidden="true">
+    <div class="contact-orb contact-orb--1"></div>
+    <div class="contact-orb contact-orb--2"></div>
+    <div class="contact-watermark">DX</div>
+  </div>
+
   <div class="container container-narrow">
     <div class="contact-content fade-in">
       <p class="label">Get in Touch</p>
@@ -12,7 +18,7 @@
       </p>
 
       <div class="contact-actions">
-        <a href="https://www.linkedin.com/in/du-xiang" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+        <a href="https://www.linkedin.com/in/du-xiang" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-glow">
           Connect me thru LinkedIn
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"/>
@@ -22,6 +28,11 @@
       </div>
 
       <div class="contact-info">
+        <div class="contact-status">
+          <span class="status-indicator"></span>
+          <span>Open to opportunities</span>
+        </div>
+        <span class="divider">·</span>
         <p>Berkeley, CA</p>
         <span class="divider">·</span>
         <a href="https://du-xiang.com">du-xiang.com</a>
@@ -31,8 +42,68 @@
 </section>
 
 <style>
+  .contact-section {
+    position: relative;
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    padding: var(--space-40) 0;
+    margin-left: var(--sidebar-width);
+    z-index: 2;
+    overflow: hidden;
+  }
+
+  .contact-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .contact-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+  }
+
+  .contact-orb--1 {
+    width: 500px;
+    height: 500px;
+    background: rgba(99, 102, 241, 0.08);
+    top: -100px;
+    right: -100px;
+    animation: contactFloat 15s ease-in-out infinite;
+  }
+
+  .contact-orb--2 {
+    width: 400px;
+    height: 400px;
+    background: rgba(139, 92, 246, 0.06);
+    bottom: -100px;
+    left: -50px;
+    animation: contactFloat 18s ease-in-out infinite reverse;
+  }
+
+  @keyframes contactFloat {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(20px, -20px); }
+  }
+
+  .contact-watermark {
+    position: absolute;
+    font-size: clamp(15rem, 25vw, 25rem);
+    font-weight: 800;
+    color: var(--color-watermark);
+    letter-spacing: -0.05em;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    user-select: none;
+    line-height: 1;
+  }
+
   .contact-content {
     text-align: center;
+    position: relative;
   }
 
   .contact-content .label {
@@ -41,11 +112,17 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     margin-bottom: var(--space-4);
+    justify-content: center;
   }
 
   .contact-content h2 {
-    font-size: clamp(var(--text-4xl), 6vw, var(--text-5xl));
+    font-size: clamp(var(--text-4xl), 6vw, var(--text-6xl));
     margin-bottom: var(--space-6);
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--gradient-text-start) 0%, var(--gradient-text-end-muted) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .contact-description {
@@ -63,6 +140,26 @@
     margin-bottom: var(--space-16);
   }
 
+  .btn-glow {
+    position: relative;
+  }
+
+  .btn-glow::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 9999px;
+    background: var(--btn-glow-bg);
+    z-index: -1;
+    opacity: 0;
+    transition: opacity var(--duration-base) var(--ease-out);
+    filter: blur(12px);
+  }
+
+  .btn-glow:hover::after {
+    opacity: 1;
+  }
+
   .contact-info {
     display: flex;
     align-items: center;
@@ -70,6 +167,28 @@
     gap: var(--space-4);
     font-size: var(--text-sm);
     color: var(--color-text-muted);
+    flex-wrap: wrap;
+  }
+
+  .contact-status {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-accent-teal);
+    font-weight: 500;
+  }
+
+  .status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-accent-teal);
+    animation: statusPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes statusPulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.4); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(20, 184, 166, 0); }
   }
 
   .contact-info a {
@@ -83,6 +202,18 @@
 
   .divider {
     opacity: 0.3;
+  }
+
+  @media (max-width: 768px) {
+    .contact-section {
+      margin-left: 0;
+      min-height: 60vh;
+    }
+
+    .contact-content h2 {
+      -webkit-text-fill-color: unset;
+      background: none;
+    }
   }
 
   @media (max-width: 480px) {

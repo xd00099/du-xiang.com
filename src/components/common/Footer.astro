@@ -5,11 +5,10 @@ const year = new Date().getFullYear();
 <footer class="footer">
   <div class="container">
     <div class="footer-content">
-      <p class="copyright">© {year} Du Xiang</p>
+      <p class="copyright">&copy; {year} Du Xiang</p>
       <div class="footer-links">
         <a href="https://github.com/xd00099" target="_blank" rel="noopener noreferrer">GitHub</a>
         <a href="https://www.linkedin.com/in/du-xiang" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-        <a href="https://www.instagram.com/richardxd/" target="_blank" rel="noopener noreferrer">Instagram</a>
       </div>
     </div>
   </div>
@@ -18,8 +17,25 @@ const year = new Date().getFullYear();
 <style>
   .footer {
     padding: var(--space-8) 0;
-    border-top: 1px solid var(--color-border);
     margin-left: var(--sidebar-width);
+    position: relative;
+    z-index: 2;
+  }
+
+  .footer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(99, 102, 241, 0.3) 30%,
+      rgba(139, 92, 246, 0.2) 50%,
+      rgba(20, 184, 166, 0.3) 70%,
+      transparent 100%
+    );
   }
 
   @media (max-width: 768px) {
@@ -49,10 +65,26 @@ const year = new Date().getFullYear();
     font-size: var(--text-sm);
     color: var(--color-text-muted);
     transition: color var(--duration-fast) var(--ease-out);
+    position: relative;
+  }
+
+  .footer-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: var(--gradient-indigo);
+    transition: width var(--duration-base) var(--ease-out);
   }
 
   .footer-links a:hover {
     color: var(--color-text);
+  }
+
+  .footer-links a:hover::after {
+    width: 100%;
   }
 
   @media (max-width: 480px) {

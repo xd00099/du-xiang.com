@@ -6,7 +6,11 @@
   <div class="container">
     <div class="about-grid">
       <div class="about-image fade-in">
-        <img src="/images/geek-profile.jpeg" alt="Du Xiang" />
+        <div class="image-frame">
+          <img src="/images/geek-profile.jpeg" alt="Du Xiang" />
+          <div class="image-glow" aria-hidden="true"></div>
+        </div>
+        <div class="image-decoration" aria-hidden="true"></div>
       </div>
 
       <div class="about-content fade-in">
@@ -49,11 +53,64 @@
     position: relative;
   }
 
+  .image-frame {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  .image-frame::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 20px;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.4), rgba(139, 92, 246, 0.1), rgba(20, 184, 166, 0.3));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .image-glow {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, transparent 50%);
+    z-index: 1;
+    opacity: 0;
+    transition: opacity var(--duration-slow) var(--ease-out);
+  }
+
+  .about-image:hover .image-glow {
+    opacity: 1;
+  }
+
+  .image-decoration {
+    position: absolute;
+    width: 120%;
+    height: 120%;
+    top: -10%;
+    left: -10%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+    z-index: -1;
+    filter: blur(40px);
+  }
+
   .about-image img {
     width: 100%;
     aspect-ratio: 1;
     object-fit: cover;
-    border-radius: 16px;
+    border-radius: 20px;
+    position: relative;
+    z-index: 1;
+    transition: transform var(--duration-slow) var(--ease-out);
+  }
+
+  .about-image:hover img {
+    transform: scale(1.02);
   }
 
   .about-content .label {
@@ -68,6 +125,10 @@
     font-size: clamp(var(--text-3xl), 4vw, var(--text-4xl));
     margin-bottom: var(--space-8);
     max-width: 500px;
+    background: linear-gradient(135deg, var(--gradient-text-start) 0%, var(--gradient-text-end) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .about-content .bio {
@@ -78,7 +139,7 @@
 
   .about-links {
     display: flex;
-    gap: var(--space-6);
+    gap: var(--space-4);
     margin-top: var(--space-10);
   }
 
@@ -88,11 +149,17 @@
     gap: var(--space-2);
     font-size: var(--text-sm);
     color: var(--color-text-secondary);
-    transition: color var(--duration-fast) var(--ease-out);
+    padding: var(--space-2) var(--space-4);
+    border-radius: 10px;
+    border: 1px solid var(--color-border);
+    transition: all var(--duration-fast) var(--ease-out);
   }
 
   .social-link:hover {
     color: var(--color-text);
+    border-color: var(--color-border-hover);
+    background: var(--color-hover-fill-subtle);
+    box-shadow: 0 4px 16px var(--color-shadow-medium);
   }
 
   @media (max-width: 768px) {
@@ -108,6 +175,11 @@
 
     .about-content {
       text-align: center;
+    }
+
+    .about-content h2 {
+      -webkit-text-fill-color: unset;
+      background: none;
     }
 
     .about-content h2,
