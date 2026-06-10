@@ -1,22 +1,138 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Header from '../components/common/Header.astro';
-import Footer from '../components/common/Footer.astro';
-import Hero from '../components/hero/Hero.astro';
-import About from '../components/about/About.astro';
-import Resume from '../components/resume/Resume.astro';
-import Projects from '../components/projects/Projects.astro';
-import Contact from '../components/contact/Contact.astro';
+
+const essays = [
+  {
+    date: '10 june 2026',
+    title: 'On Feeling Weak · 关于无力感',
+    link: '/blog/on-feeling-weak',
+    filed: 'personal',
+    time: '7 min',
+    blurb: 'Twenty years of learning, four years of acceleration, and what remains ours. Written late at night, in both my languages.',
+  },
+  {
+    date: '9 february 2026',
+    title: 'Agent Teams vs Sub-Agents: Multi-Agent Architectures for LLMs',
+    link: '/blog/agent-teams-architecture',
+    filed: 'ai agents, architecture',
+    time: '18 min',
+    blurb: 'AI agents that talk to each other, peer-to-peer. How that compares to hub-and-spoke, and when each one earns its complexity.',
+  },
+  {
+    date: '4 february 2026',
+    title: 'Skills vs MCP: Tool Architecture for AI Agents',
+    link: '/blog/skills-vs-mcp-agents',
+    filed: 'mcp, ai agents',
+    time: '14 min',
+    blurb: 'How should a machine hold its tools? Enterprise cases, security considerations, and some opinions.',
+  },
+  {
+    date: '7 august 2025',
+    title: 'Context Engineering: Building Intelligent Memory Systems',
+    link: '/blog/context-engineering-memory',
+    filed: 'memory, ai agents',
+    time: '16 min',
+    blurb: 'Giving language models a memory, so they stop forgetting you between conversations.',
+  },
+  {
+    date: '20 september 2024',
+    title: 'Scaling SEO & GEO Content with LLMs',
+    link: '/blog/seo-geo-content-generation',
+    filed: 'seo, content',
+    time: '15 min',
+    blurb: 'Teaching machines to write things other machines want to read. The circle of life, automated.',
+  },
+];
+
+const timeline = [
+  { when: '2025–now', what: 'staff ml engineer, <a href="https://www.zscaler.com">zscaler</a>' },
+  { when: '2025', what: 'lead founding engineer, yc-backed startup ($300k → $5m arr)' },
+  { when: '2024–25', what: 'senior ml engineer, linqto' },
+  { when: '2023–24', what: 'data scientist, simplr.ai' },
+  { when: '2022–23', what: 'm.eng eecs, uc berkeley' },
+  { when: '2018–22', what: 'b.s. data science, uc san diego (summa cum laude)' },
+];
 ---
 
 <Layout>
-  <Header />
-  <main>
-    <Hero />
-    <About />
-    <Resume />
-    <Projects />
-    <Contact />
-  </main>
-  <Footer />
+  <div id="content">
+    <p>
+      Hi. I'm Du — a machine-learning engineer in the Bay Area. By day I'm a Staff ML
+      Engineer at <a href="https://www.zscaler.com">Zscaler</a>, where I build
+      large-language-model systems for cloud security; nights and weekends I write
+      the occasional very long essay about how the sausage is made. This site is
+      hand-coded, mostly validates, and has <a href="/rss.xml">an RSS feed</a>,
+      because it is 2005 somewhere.
+    </p>
+
+    <h2>recent essays</h2>
+
+    {essays.map((e) => (
+      <div class="post">
+        <h3><a href={e.link}>{e.title}</a></h3>
+        <p class="meta">{e.date} &middot; filed under: {e.filed} &middot; {e.time}</p>
+        <p>{e.blurb}</p>
+      </div>
+    ))}
+
+    <p class="meta">&rarr; <a href="/blog">browse the full archive</a> (nine essays, two of them in chinese)</p>
+
+    <h2>briefly</h2>
+
+    <ul class="archive-list">
+      {timeline.map((t) => (
+        <li>
+          <span class="date">{t.when}</span>
+          <span set:html={t.what} />
+        </li>
+      ))}
+    </ul>
+
+  </div>
+
+  <div id="sidebar">
+    <h2>about</h2>
+    <p class="photo"><img src="/images/geek-profile.jpeg" width="182" alt="Du Xiang" /></p>
+    <p>
+      Staff ML engineer at <strong>Zscaler</strong>. Previously: lead founding engineer at a
+      YC-backed startup ($300K &rarr; $5M ARR, 2M+ workflow runs a month), Linqto,
+      and Simplr.ai.
+    </p>
+    <p>
+      M.Eng EECS, UC Berkeley. B.S. Data Science, UC San Diego, summa cum laude.
+      I teach warehouse-sized computers to read.
+    </p>
+
+    <h2>elsewhere</h2>
+    <ul>
+      <li><a href="https://github.com/xd00099">github</a> &mdash; the code</li>
+      <li><a href="https://www.linkedin.com/in/du-xiang">linkedin</a> &mdash; the suit</li>
+      <li><a href="https://buymeacoffee.com/duxiang">tip jar</a> &mdash; the coffee</li>
+    </ul>
+
+    <h2>search</h2>
+    <form id="searchbox" action="https://www.google.com/search" method="get" onsubmit="this.q.value = 'site:du-xiang.com ' + this.q.value;">
+      <input class="q" type="text" name="q" />
+      <input class="go" type="submit" value="go" />
+    </form>
+    <p>(powered by google, like everything else around here.)</p>
+
+    <h2>blogroll</h2>
+    <ul>
+      <li><a href="https://daringfireball.net">daring fireball</a></li>
+      <li><a href="https://kottke.org">kottke.org</a></li>
+      <li><a href="https://alistapart.com">a list apart</a></li>
+      <li><a href="https://www.zeldman.com">zeldman</a></li>
+      <li><a href="/links">full blogroll &rarr;</a></li>
+    </ul>
+
+    <h2>badges</h2>
+    <p class="badges">
+      <img src="/standards/xhtml.gif" width="80" height="15" alt="valid XHTML 1.0, in spirit" /><img src="/standards/css.gif" width="80" height="15" alt="valid CSS" /><br />
+      <img src="/standards/rss.gif" width="80" height="15" alt="RSS 2.0" /><img src="/standards/firefox.gif" width="80" height="15" alt="get firefox" /><br />
+      <img src="/standards/cc.gif" width="80" height="15" alt="creative commons" /><img src="/standards/coffee.gif" width="80" height="15" alt="powered by coffee" />
+    </p>
+  </div>
+
+  <div class="clear"></div>
 </Layout>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- hand-coded RSS 2.0, the way Dave Winer intended -->
+<rss version="2.0">
+  <channel>
+    <title>du xiang</title>
+    <link>https://du-xiang.com</link>
+    <description>machine learning, production systems, and other small obsessions. full-text essays, no tracking, dotted borders.</description>
+    <language>en-us</language>
+    <generator>Movable Type 3.2 (allegedly)</generator>
+    <docs>https://www.rssboard.org/rss-specification</docs>
+
+    <item>
+      <title>On Feeling Weak · 关于无力感</title>
+      <link>https://du-xiang.com/blog/on-feeling-weak</link>
+      <guid>https://du-xiang.com/blog/on-feeling-weak</guid>
+      <pubDate>Wed, 10 Jun 2026 01:20:00 -0700</pubDate>
+      <description>Twenty years of learning, four years of acceleration, and the question of what remains ours. A personal essay, written late at night, in both my languages.</description>
+    </item>
+    <item>
+      <title>Agent Teams vs Sub-Agents: Multi-Agent Architectures for LLMs</title>
+      <link>https://du-xiang.com/blog/agent-teams-architecture</link>
+      <guid>https://du-xiang.com/blog/agent-teams-architecture</guid>
+      <pubDate>Mon, 09 Feb 2026 09:00:00 -0800</pubDate>
+      <description>AI agents that talk to each other, peer-to-peer. How that compares to hub-and-spoke sub-agents, and when each one earns its complexity.</description>
+    </item>
+    <item>
+      <title>Skills vs MCP: Tool Architecture for AI Agents</title>
+      <link>https://du-xiang.com/blog/skills-vs-mcp-agents</link>
+      <guid>https://du-xiang.com/blog/skills-vs-mcp-agents</guid>
+      <pubDate>Wed, 04 Feb 2026 09:00:00 -0800</pubDate>
+      <description>How should a machine hold its tools? Enterprise cases, security considerations, and some opinions.</description>
+    </item>
+    <item>
+      <title>Context Engineering: Building Intelligent Memory Systems</title>
+      <link>https://du-xiang.com/blog/context-engineering-memory</link>
+      <guid>https://du-xiang.com/blog/context-engineering-memory</guid>
+      <pubDate>Thu, 07 Aug 2025 09:00:00 -0700</pubDate>
+      <description>Giving language models a memory, so they stop forgetting you between conversations. From short-term buffers to knowledge graphs.</description>
+    </item>
+    <item>
+      <title>Scaling SEO &amp; GEO Content with LLMs</title>
+      <link>https://du-xiang.com/blog/seo-geo-content-generation</link>
+      <guid>https://du-xiang.com/blog/seo-geo-content-generation</guid>
+      <pubDate>Fri, 20 Sep 2024 09:00:00 -0700</pubDate>
+      <description>Teaching machines to write things other machines want to read. The circle of life, automated.</description>
+    </item>
+    <item>
+      <title>Real-Time Personalized Quick Suggest with WebSockets</title>
+      <link>https://du-xiang.com/blog/realtime-quick-suggest</link>
+      <guid>https://du-xiang.com/blog/realtime-quick-suggest</guid>
+      <pubDate>Mon, 10 Jun 2024 09:00:00 -0700</pubDate>
+      <description>Autocomplete fast enough to finish your sentence politely. FAISS, WebSockets, FastAPI.</description>
+    </item>
+    <item>
+      <title>Hot-Swappable LoRA: Serving 16 Models on One GPU</title>
+      <link>https://du-xiang.com/blog/multi-lora-serving</link>
+      <guid>https://du-xiang.com/blog/multi-lora-serving</guid>
+      <pubDate>Fri, 15 Mar 2024 09:00:00 -0700</pubDate>
+      <description>Sixteen fine-tuned models sharing one graphics card, like graduate students sharing an apartment. vLLM, PEFT, SageMaker.</description>
+    </item>
+    <item>
+      <title>Latent Reasoning: Teaching Small LLMs to Think Without Thinking</title>
+      <link>https://du-xiang.com/blog/latent-reasoning-slm</link>
+      <guid>https://du-xiang.com/blog/latent-reasoning-slm</guid>
+      <pubDate>Thu, 28 Dec 2023 09:00:00 -0800</pubDate>
+      <description>Chain-of-thought quality without the token toll. Small models, larger ambitions.</description>
+    </item>
+    <item>
+      <title>Lipstick Recommendation</title>
+      <link>https://mp.weixin.qq.com/s/RryxBWAClB9AgIqFvoSbhg</link>
+      <guid>https://mp.weixin.qq.com/s/RryxBWAClB9AgIqFvoSbhg</guid>
+      <pubDate>Thu, 01 Jul 2021 09:00:00 -0700</pubDate>
+      <description>Data science applied to Taobao lipstick trends. Off-site, and in Chinese.</description>
+    </item>
+    <item>
+      <title>Earthquake Analysis</title>
+      <link>https://mp.weixin.qq.com/s/Od3sdJ60wn4WKgM2PfC05A</link>
+      <guid>https://mp.weixin.qq.com/s/Od3sdJ60wn4WKgM2PfC05A</guid>
+      <pubDate>Sun, 03 May 2020 09:00:00 -0700</pubDate>
+      <description>Web-crawled earthquake data with heatmap visualization. Off-site, and in Chinese.</description>
+    </item>
+  </channel>
+</rss>

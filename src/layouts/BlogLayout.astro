@@ -8,420 +8,281 @@ interface Props {
   tags?: string[];
 }
 
-import ThemeToggle from '../components/common/ThemeToggle.astro';
+const { title, description, date, readTime, author = 'Du Xiang', tags = [] } = Astro.props;
 
-const { title, description, date, readTime, author = "Du Xiang", tags = [] } = Astro.props;
+// Parse date-only strings at noon so the calendar day survives any timezone.
+const prettyDate = new Date(date.includes('T') ? date : `${date}T12:00:00`)
+  .toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  .toLowerCase();
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- No viewport meta. 760 pixels, as nature intended. -->
     <meta name="description" content={description} />
     <meta name="author" content="Du Xiang" />
 
-    <!-- Open Graph -->
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="article" />
     <meta property="og:url" content="https://du-xiang.com" />
 
-    <!-- Favicon -->
     <link rel="icon" type="image/jpeg" href="/images/title.jpg" />
+    <link rel="alternate" type="application/rss+xml" title="du xiang (RSS 2.0)" href="/rss.xml" />
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-
-    <title>{title} | Du Xiang</title>
-
-    <script is:inline>
-      (function() {
-        var stored = localStorage.getItem('theme');
-        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        var theme = stored || (prefersDark ? 'dark' : 'light');
-        document.documentElement.setAttribute('data-theme', theme);
-      })();
-    </script>
+    <title>{title} · du xiang</title>
   </head>
-  <body>
-    <header class="blog-header">
-      <a href="/" class="back-link">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="19" y1="12" x2="5" y2="12"/>
-          <polyline points="12 19 5 12 12 5"/>
-        </svg>
-        Back to Home
-      </a>
-      <ThemeToggle />
-    </header>
 
-    <main class="blog-main">
-      <article class="blog-article">
-        <header class="article-header">
-          <div class="article-meta">
-            <time datetime={date}>{new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</time>
-            <span class="separator">·</span>
-            <span>{readTime}</span>
-            <span class="separator">|</span>
-            <span class="author">{author}</span>
-          </div>
-          <h1>{title}</h1>
-          <p class="article-description">{description}</p>
-          {tags.length > 0 && (
-            <div class="article-tags">
-              {tags.map(tag => (
-                <span class="tag">{tag}</span>
-              ))}
-            </div>
-          )}
-        </header>
+  <body>
+    <div id="page">
+      <div id="masthead">
+        <h1><a href="/" title="back to the front page">du xiang</a></h1>
+        <p id="tagline">machine learning, production systems, and other small obsessions</p>
+        <p id="nav">
+          <a href="/">home</a>
+          <a href="/blog">essays</a>
+          <a href="/links">blogroll</a>
+          <a href="/colophon">colophon</a>
+          <a href="/rss.xml" title="subscribe to the feed"><img src="/standards/feed.gif" width="14" height="14" alt="RSS" /> subscribe</a>
+        </p>
+      </div>
+
+      <div id="single">
+        <h1 class="essay-title">{title}</h1>
+        <p class="meta">
+          {prettyDate} &middot; {readTime.toLowerCase()} &middot; by {author.toLowerCase()}
+          {tags.length > 0 && <span> &middot; filed under: {tags.map((t) => t.toLowerCase()).join(', ')}</span>}
+        </p>
+        <p class="lead">{description}</p>
+        <hr />
 
         <div class="article-content">
           <slot />
         </div>
-      </article>
-    </main>
 
-    <footer class="blog-footer">
-      <p>Written by <a href="/">Du Xiang</a></p>
-    </footer>
+        <hr />
+        <p class="meta essay-foot">
+          &larr; <a href="/">back home</a> &middot; <a href="/blog">essay archive</a> &middot;
+          <a href="/rss.xml">subscribe</a>
+        </p>
+      </div>
+
+      <div id="footer">
+        &copy; 2003&ndash;2026 du xiang &middot; <a href="https://creativecommons.org/licenses/by-sa/4.0/">some rights reserved</a> &middot;
+        <a href="/rss.xml">rss 2.0</a> &middot;
+        <a href="/colophon">xhtml 1.0 strict (in spirit)</a>
+        <p class="fineprint">you may quote freely; a link is the polite currency of the web.</p>
+      </div>
+    </div>
   </body>
 </html>
 
 <style is:global>
   @import '../styles/global.css';
 
-  body {
-    background: var(--color-bg);
+  /* =========================================================
+     Essay typography, c. 2005. The page does the whispering;
+     the words do the talking.
+     ========================================================= */
+
+  .essay-title {
+    font: normal 26px/1.25 Georgia, serif;
+    color: #222;
+    margin-bottom: 0.2em;
   }
 
-  .blog-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 var(--space-6);
-    background: var(--color-overlay-medium);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--color-border);
-    z-index: 100;
+  .essay-foot {
+    margin-top: 1em;
   }
 
-  .back-link {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    color: var(--color-text-secondary);
-    font-size: var(--text-sm);
-    font-weight: 500;
-    transition: color var(--duration-fast) var(--ease-out);
-  }
-
-  .back-link:hover {
-    color: var(--color-text);
-  }
-
-  .blog-main {
-    min-height: 100vh;
-    padding-top: 100px;
-    padding-bottom: var(--space-20);
-  }
-
-  .blog-article {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 0 var(--space-6);
-  }
-
-  .article-header {
-    margin-bottom: var(--space-12);
-    padding-bottom: var(--space-8);
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  .article-meta {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    font-size: var(--text-sm);
-    color: var(--color-text-muted);
-    margin-bottom: var(--space-4);
-  }
-
-  .separator {
-    opacity: 0.3;
-  }
-
-  .article-header h1 {
-    font-size: clamp(var(--text-3xl), 5vw, var(--text-4xl));
-    line-height: 1.2;
-    margin-bottom: var(--space-4);
-  }
-
-  .article-description {
-    font-size: var(--text-lg);
-    color: var(--color-text-secondary);
-    line-height: 1.6;
-  }
-
-  .article-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2);
-    margin-top: var(--space-6);
-  }
-
-  .article-tags .tag {
-    font-size: var(--text-xs);
-    color: var(--color-text-muted);
-    padding: var(--space-1) var(--space-3);
-    background: var(--color-bg-elevated);
-    border: 1px solid var(--color-border);
-    border-radius: 9999px;
-  }
-
-  /* Article Content Styles */
   .article-content {
-    font-size: var(--text-lg);
-    line-height: 1.8;
-    color: var(--color-text-secondary);
+    font-size: 14px;
+    line-height: 1.7;
   }
 
   .article-content h2 {
-    font-size: var(--text-2xl);
-    margin-top: var(--space-12);
-    margin-bottom: var(--space-6);
-    padding-top: var(--space-4);
-    border-top: 1px solid var(--color-border);
+    font: italic 21px Georgia, serif;
+    color: #b32d00;
+    border-bottom: 1px dotted #ddd;
+    padding-bottom: 2px;
+    margin: 1.8em 0 0.5em 0;
   }
 
   .article-content h3 {
-    font-size: var(--text-xl);
-    margin-top: var(--space-8);
-    margin-bottom: var(--space-4);
+    font: bold 16px Georgia, serif;
+    color: #222;
+    margin: 1.5em 0 0.4em 0;
   }
 
   .article-content h4 {
-    font-size: var(--text-lg);
-    margin-top: var(--space-6);
-    margin-bottom: var(--space-3);
+    font: bold 11px Verdana, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #777;
+    margin: 1.4em 0 0.3em 0;
   }
 
-  .article-content p {
-    margin-bottom: var(--space-6);
+  .article-content ul {
+    list-style: square;
   }
 
   .article-content strong {
-    color: var(--color-text);
-    font-weight: 600;
+    color: #111;
   }
 
-  .article-content em {
+  /* ---- boxes the essays use ---- */
+  .article-content .callout {
+    background: #faf8f2;
+    border: 1px dashed #d8d2c0;
+    padding: 12px 16px;
+    margin: 1.4em 0;
+  }
+
+  .article-content .callout-title {
+    font: bold 10px Verdana, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #998a55;
+    margin-bottom: 0.4em;
+  }
+
+  .article-content .callout.insight {
+    background: #f3f7f9;
+    border-color: #c4d4dc;
+  }
+  .article-content .callout.insight .callout-title {
+    color: #4a7587;
+  }
+
+  .article-content .callout.warning {
+    background: #faf3f1;
+    border-color: #dcc0b8;
+  }
+  .article-content .callout.warning .callout-title {
+    color: #a05442;
+  }
+
+  .article-content .callout.tip {
+    background: #f4f8f2;
+    border-color: #c6d6bf;
+  }
+  .article-content .callout.tip .callout-title {
+    color: #5a7a4d;
+  }
+
+  .article-content .takeaways,
+  .article-content .takeaway {
+    background: #f7f6f2;
+    border-top: 3px solid #b32d00;
+    border-bottom: 1px dotted #ccc;
+    padding: 12px 16px;
+    margin: 1.4em 0;
+  }
+
+  .article-content .takeaway .number {
+    font: italic 18px Georgia, serif;
+    color: #b32d00;
+    margin-right: 6px;
+  }
+
+  .article-content .stats-callout {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    text-align: center;
+    background: #f7f6f2;
+    border: 1px dashed #c9c4b8;
+    padding: 14px 8px;
+    margin: 1.4em 0;
+  }
+
+  .article-content .stat .number {
+    display: block;
+    font: italic 26px Georgia, serif;
+    color: #b32d00;
+  }
+
+  .article-content .stat .label {
+    display: block;
+    font: 9px Verdana, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #999;
+  }
+
+  .article-content .benefit-card {
+    background: #fdfdfb;
+    border: 1px solid #e8e5de;
+    border-left: 3px solid #c4d4dc;
+    padding: 10px 14px;
+    margin: 0.8em 0;
+  }
+
+  .article-content .layer {
+    border: 1px solid #d8d4ca;
+    margin: 1em 0;
+  }
+
+  .article-content .layer-header {
+    background: #f0eeea;
+    border-bottom: 1px solid #d8d4ca;
+    font: bold 11px Verdana, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #555;
+    padding: 6px 12px;
+  }
+
+  .article-content .layer-number {
+    font: italic 14px Georgia, serif;
+    color: #b32d00;
+    margin-right: 8px;
+  }
+
+  .article-content .layer > :not(.layer-header) {
+    padding: 0 14px;
+  }
+
+  .article-content .positive {
+    color: #4d7a3a;
+    font-weight: bold;
+  }
+
+  .article-content .references {
+    font-size: 12px;
+    color: #777;
+    border-top: 1px dotted #ccc;
+    padding-top: 10px;
+  }
+
+  .article-content .lead {
     font-style: italic;
+    color: #666;
+    font-size: 15px;
   }
 
-  .article-content a {
-    color: var(--color-link);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    transition: color var(--duration-fast) var(--ease-out);
+  .article-content .code-comparison,
+  .article-content .benefits-grid,
+  .article-content .layers-diagram {
+    margin: 1.2em 0;
   }
 
-  .article-content a:hover {
-    color: var(--color-link-hover);
-  }
-
-  .article-content ul,
-  .article-content ol {
-    margin-bottom: var(--space-6);
-    padding-left: var(--space-6);
-  }
-
-  .article-content li {
-    margin-bottom: var(--space-2);
-  }
-
-  .article-content li::marker {
-    color: var(--color-text-muted);
-  }
-
-  .article-content blockquote {
-    margin: var(--space-8) 0;
-    padding: var(--space-4) var(--space-6);
-    border-left: 3px solid var(--color-link);
-    background: var(--color-bg-elevated);
-    border-radius: 0 8px 8px 0;
-    font-style: italic;
-  }
-
-  .article-content blockquote p {
-    margin-bottom: 0;
-  }
-
-  /* Code Blocks */
-  .article-content code {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.9em;
-  }
-
-  .article-content :not(pre) > code {
-    background: var(--color-bg-elevated);
-    padding: 0.2em 0.4em;
-    border-radius: 4px;
-    color: var(--color-code-inline);
-  }
-
-  .article-content pre {
-    margin: var(--space-6) 0;
-    padding: var(--space-6);
-    background: var(--color-code-bg);
-    border: 1px solid var(--color-border);
-    border-radius: 12px;
+  .article-content .comparison-table {
+    margin: 1.2em 0;
     overflow-x: auto;
-    font-size: var(--text-sm);
-    line-height: 1.6;
   }
 
-  .article-content pre code {
-    background: none;
-    padding: 0;
-    color: var(--color-code-text);
+  .article-content blockquote cite {
+    display: block;
+    font: 10px Verdana, sans-serif;
+    font-style: normal;
+    color: #999;
+    margin-top: 0.5em;
   }
 
-  /* Images */
   .article-content img {
     max-width: 100%;
-    height: auto;
-    border-radius: 12px;
-    margin: var(--space-8) 0;
-    border: 1px solid var(--color-border);
-  }
-
-  /* Tables */
-  .article-content table {
-    width: 100%;
-    margin: var(--space-8) 0;
-    border-collapse: collapse;
-    font-size: var(--text-sm);
-  }
-
-  .article-content th,
-  .article-content td {
-    padding: var(--space-3) var(--space-4);
-    border: 1px solid var(--color-border);
-    text-align: left;
-  }
-
-  .article-content th {
-    background: var(--color-bg-elevated);
-    font-weight: 600;
-    color: var(--color-text);
-  }
-
-  /* Horizontal Rule */
-  .article-content hr {
-    margin: var(--space-12) 0;
-    border: none;
-    border-top: 1px solid var(--color-border);
-  }
-
-  /* Callout Boxes */
-  .callout {
-    margin: var(--space-8) 0;
-    padding: var(--space-6);
-    background: var(--color-bg-elevated);
-    border: 1px solid var(--color-border);
-    border-radius: 12px;
-  }
-
-  .callout-title {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-weight: 600;
-    color: var(--color-text);
-    margin-bottom: var(--space-3);
-  }
-
-  .callout.insight {
-    border-left: 3px solid var(--color-link);
-  }
-
-  .callout.warning {
-    border-left: 3px solid #f59e0b;
-  }
-
-  .callout.tip {
-    border-left: 3px solid #10b981;
-  }
-
-  /* Blog Footer */
-  .blog-footer {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: var(--space-8) var(--space-6);
-    border-top: 1px solid var(--color-border);
-    text-align: center;
-    font-size: var(--text-sm);
-    color: var(--color-text-muted);
-  }
-
-  .blog-footer a {
-    color: var(--color-text-secondary);
-  }
-
-  .blog-footer a:hover {
-    color: var(--color-text);
-  }
-
-  /* Math-like styling */
-  .formula {
-    display: block;
-    margin: var(--space-6) 0;
-    padding: var(--space-4);
-    background: var(--color-bg-elevated);
-    border-radius: 8px;
-    text-align: center;
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--color-text);
-    overflow-x: auto;
-  }
-
-  /* Figure with caption */
-  figure {
-    margin: var(--space-8) 0;
-  }
-
-  figcaption {
-    text-align: center;
-    font-size: var(--text-sm);
-    color: var(--color-text-muted);
-    margin-top: var(--space-3);
-  }
-
-  @media (max-width: 768px) {
-    .blog-main {
-      padding-top: 80px;
-    }
-
-    .article-content {
-      font-size: var(--text-base);
-    }
-
-    .article-content pre {
-      padding: var(--space-4);
-      font-size: var(--text-xs);
-      margin-left: calc(-1 * var(--space-6));
-      margin-right: calc(-1 * var(--space-6));
-      border-radius: 0;
-    }
   }
 </style>

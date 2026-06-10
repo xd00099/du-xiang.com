@@ -5,92 +5,57 @@ interface Props {
 }
 
 const {
-  title = "Du Xiang | Staff ML Engineer @ Zscaler",
-  description = "Staff Machine Learning Engineer at Zscaler. Expertise in LLM systems, agentic RAG, and production ML infrastructure. Previously founding engineer scaling startups from $300K to $5M+ ARR."
+  title = 'du xiang · machine learning, production systems, and other small obsessions',
+  description = 'The weblog of Du Xiang, a machine learning engineer in the Bay Area. Long essays on LLM systems, hand-coded markup, and an RSS feed. Standards-compliant in spirit since 2003.',
 } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- No viewport meta. This layout is 760 pixels wide, as nature intended. -->
     <meta name="description" content={description} />
     <meta name="author" content="Du Xiang" />
 
-    <!-- Open Graph -->
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://du-xiang.com" />
-    <meta property="og:image" content="/images/about.png" />
 
-    <!-- Favicon -->
     <link rel="icon" type="image/jpeg" href="/images/title.jpg" />
-
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="alternate" type="application/rss+xml" title="du xiang (RSS 2.0)" href="/rss.xml" />
 
     <title>{title}</title>
-
-    <!-- Theme detection (inline to prevent FOUC) -->
-    <script is:inline>
-      (function() {
-        var stored = localStorage.getItem('theme');
-        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        var theme = stored || (prefersDark ? 'dark' : 'light');
-        document.documentElement.setAttribute('data-theme', theme);
-      })();
-    </script>
   </head>
+
   <body>
-    <!-- Global visual layers -->
-    <div class="ambient-orbs" aria-hidden="true">
-      <div class="ambient-orb ambient-orb--1"></div>
-      <div class="ambient-orb ambient-orb--2"></div>
-      <div class="ambient-orb ambient-orb--3"></div>
+    <!-- hand-coded. view source all you like; that's what it's for. -->
+    <div id="page">
+      <div id="masthead">
+        <h1><a href="/" title="back to the front page">du xiang</a></h1>
+        <p id="tagline">machine learning, production systems, and other small obsessions</p>
+        <p id="nav">
+          <a href="/">home</a>
+          <a href="/blog">essays</a>
+          <a href="/links">blogroll</a>
+          <a href="/colophon">colophon</a>
+          <a href="/rss.xml" title="subscribe to the feed"><img src="/standards/feed.gif" width="14" height="14" alt="RSS" /> subscribe</a>
+        </p>
+      </div>
+
+      <slot />
+
+      <div id="footer">
+        &copy; 2003&ndash;2026 du xiang &middot; <a href="https://creativecommons.org/licenses/by-sa/4.0/">some rights reserved</a> &middot;
+        <a href="/rss.xml">rss 2.0</a> &middot;
+        <a href="/colophon">xhtml 1.0 strict (in spirit)</a>
+        <p class="fineprint">
+          hand-coded in textmate, give or take. no tables were used in this layout
+          &mdash; we deleted them all in june, and it was emotional.
+        </p>
+      </div>
     </div>
-    <div class="vignette" aria-hidden="true"></div>
-    <div class="noise-overlay" aria-hidden="true"></div>
-
-    <slot />
-
-    <script>
-      // Scroll animation observer
-      const observerOptions = {
-        root: null,
-        rootMargin: '0px',
-        threshold: 0.1
-      };
-
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-          }
-        });
-      }, observerOptions);
-
-      document.querySelectorAll('.fade-in').forEach(el => {
-        observer.observe(el);
-      });
-
-      // Smooth scroll for anchor links
-      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-          e.preventDefault();
-          const target = document.querySelector(this.getAttribute('href') as string);
-          if (target) {
-            target.scrollIntoView({
-              behavior: 'smooth',
-              block: 'start'
-            });
-          }
-        });
-      });
-    </script>
   </body>
 </html>
 

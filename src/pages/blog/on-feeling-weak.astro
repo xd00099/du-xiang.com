@@ -1,0 +1,274 @@
+---
+import BlogLayout from '../../layouts/BlogLayout.astro';
+
+const title = 'On Feeling Weak · 关于无力感';
+const description =
+  "Twenty years of learning, four years of acceleration, and the question of what remains ours. Written late at night, in both my languages. · 学了二十年，世界快了四年，还有什么留在我们手里。深夜写下，用我会的两种语言。";
+const date = '2026-06-10';
+const readTime = '7 min read';
+const author = 'Du Xiang';
+const tags = ['personal', 'ai', 'being human'];
+---
+
+<BlogLayout title={title} description={description} date={date} readTime={readTime} author={author} tags={tags}>
+  <p class="meta">written wednesday, june 10, 2026 @ 1:20 am, the bay area · 写于 2026 年 6 月 10 日，星期三，凌晨 1:20，湾区</p>
+
+  <p>
+    Today I felt weak in a way I don't have a word for yet. Not tired — weak.
+    It has never happened before, so I am writing it down, timestamp and all,
+    so I can't pretend later that it didn't.
+  </p>
+  <p class="zh" lang="zh-CN">
+    今天我感到一种无力，还叫不出名字。不是累，是无力。以前从没有过，
+    所以我把它写下来，带上此刻的时间戳，免得日后假装它没来过。
+  </p>
+
+  <p>
+    The last time coding gave me real joy — the kind of satisfaction that keeps
+    you at the desk past midnight because you <em>want</em> to be there — was
+    almost two years ago. For about a year and a half I have been coding with
+    AI: full vibe mode some days, assist mode on others, sometimes nothing but
+    tab completion. The machine finishes my thoughts faster than I can have them.
+  </p>
+  <p class="zh" lang="zh-CN">
+    上一次写代码写出真正的乐趣，是快两年前的事了。那种满足能把人钉在桌前，
+    过了半夜也舍不得走，因为就想待在那儿。这一年半，写代码都有 AI 在场：
+    有时全程 vibe 模式，有时让它打辅助，有时只用 tab 补全。
+    念头还没在脑子里成形，机器已经替我写完了。
+  </p>
+
+  <h2>2018</h2>
+
+  <p>
+    I got into college in 2018, and that was the most amazing year of my life.
+    I finished high school and had one entire summer of pure freedom: trips all
+    over China, then Japan, then the US. I met my first love that year. It ended
+    in a breakup, but everything about that time was good. I mean that in the
+    simplest, fullest way: everything was very nice.
+  </p>
+  <p class="zh" lang="zh-CN">
+    2018 年我上了大学，那是我这辈子最好的一年。高中念完，整整一个暑假是空的：
+    先在中国到处跑，又去日本，再到美国。那段日子怎么想都是好的。
+    这话不掺别的，就是好，什么都好。
+  </p>
+
+  <p>
+    I worked hard through all four years of college and finished with a 4.0 —
+    technically a 3.999, on account of a 92.9 in a movie class, which still
+    makes me laugh. Even COVID couldn't ruin it, because my roommates became
+    lifelong friends. We cooked. We pulled all-nighters playing League of
+    Legends. We kept up in class. And then, very soon, everyone graduated.
+  </p>
+  <p class="zh" lang="zh-CN">
+    大学四年一直用功，最后绩点 4.0。严格说是 3.999：一门电影课拿了 92.9，
+    到现在想起来还想笑。疫情来了，日子也没塌，因为室友处成了一辈子的朋友。
+    我们一起做饭，通宵打英雄联盟，功课上谁也不含糊。然后很快，大家就都毕业了。
+  </p>
+
+  <h2>berkeley, and the day the world sped up · 伯克利，和世界开始提速的那天</h2>
+
+  <p>
+    Then a master's at Berkeley. Berkeley graduate CS is no joke. I learned C
+    for the first time — I had been a data science major — so that I could
+    write CUDA and run parallel simulations. The difficulty was something I had
+    signed up for on purpose. Halfway through the year, ChatGPT arrived and
+    helped carry me through the hardest classes.
+  </p>
+  <p class="zh" lang="zh-CN">
+    接着去伯克利读硕士。伯克利的计算机研究生课，不是闹着玩的。
+    本科我念的是数据科学，C 语言头一回碰，硬着头皮学，为的是写 CUDA、
+    跑并行模拟。难，是我自己找的。学年过半，ChatGPT 来了，
+    最难的几门课，是它帮我撑过去的。
+  </p>
+
+  <p>
+    I still remember launch day, because I spent it celebrating. I had studied
+    NLP and the early BERT models — we call them SLMs now, but in their day they
+    were the large language models. I celebrated because I knew this thing would
+    change the world; I just assumed it would take a while. The next day,
+    everyone knew this product. Faster than I thought. I should have understood
+    right then: it will always be faster than I think.
+  </p>
+  <p class="zh" lang="zh-CN">
+    发布那天我还记得，我在庆祝。NLP 我学过，早年的 BERT 也摆弄过，
+    如今它们被叫作 SLM，可在当年，它们就是大语言模型。我庆祝，
+    是因为我知道这东西会改变世界，只是以为总要等上一阵子。第二天，
+    所有人都知道了这个产品。比我想的快。那时我就该明白：它永远会比我想的快。
+  </p>
+
+  <p>
+    After graduation I found a job at Simplr, and I genuinely loved it. I spent
+    my days with LLMs — prompting, RAG, embeddings, fine-tuning. The models back
+    then were not the beast they are today: hard to manage, harder to ship, and
+    they hallucinated with great confidence. Nobody thought it would all move
+    this fast, or take over this much. I loved the work anyway, because the idea
+    itself was beautiful to me — that anyone with some data and some compute
+    could post-train one of these things into something useful.
+  </p>
+  <p class="zh" lang="zh-CN">
+    毕业后进了 Simplr，那份工作我是真心喜欢。整天和大模型打交道：写 prompt，
+    做 RAG，调 embedding，跑微调。那时的模型还不是今天这头怪兽：难伺候，
+    上线更难，还动不动一本正经地说胡话。没人想到这一切后来跑得那么快，
+    把什么都接了过去。可我照样喜欢这份活儿，因为那个想法本身就美：随便谁，
+    手里有点数据、有点算力，就能把这么个东西后训练成有用的物件。
+  </p>
+
+  <p>
+    Then came 2025, and everything changed at once. Claude Code took off. People
+    quietly stopped fine-tuning — the models were simply getting better at
+    following instructions and understanding people. Hardware kept pace; frontier
+    context windows reached a million tokens, which hollowed out most of what
+    fine-tuning was for. Stuff the context with examples and serve at high
+    batch, and it still beats hosting your own small models and fighting data
+    drift forever. Before I had time to work out what any of this meant for me,
+    it was 2026.
+  </p>
+  <p class="zh" lang="zh-CN">
+    然后是 2025 年，事情一下子变了。Claude Code 火了起来。微调的人渐渐少了：
+    模型越来越会听指令，越来越懂人。硬件也几乎在同步往前赶，
+    前沿模型的上下文窗口到了一百万 token，微调的意义悄悄去了大半。
+    把例子塞进上下文，开大批量去跑，还是比自己养小模型、
+    没完没了地对付数据漂移便宜。这跟我有什么相干，我还没来得及想，
+    就已经是 2026 年了。
+  </p>
+
+  <h2>the weakness · 无力</h2>
+
+  <p>
+    With Mythos out, and the Opus models compounding generation over generation,
+    I began to believe something I had never let myself believe: that I am
+    simply not good enough — as a coder, maybe as a knowledge worker at all. I
+    cannot read a book in seconds. I cannot hold on to what I learned two years
+    ago without revisiting it. Day after day in front of a coding agent, I felt
+    myself getting smaller.
+  </p>
+  <p class="zh" lang="zh-CN">
+    Mythos 出来了，Opus 一代接一代地往前赶。我开始相信一件从前不肯让自己
+    相信的事：我就是不够好。写代码不够好，靠脑子吃饭，恐怕也不够好。一本书，
+    我没法几秒钟读完；两年前学的东西，不时常温习就想不起来。一天一天坐在
+    coding agent 跟前，觉得自己在一点点变小。
+  </p>
+
+  <p>
+    The workplace changed with the feeling. When a principal engineer says
+    something that contradicts the model, people now quietly assume the model is
+    probably right. Projects that used to take a week, a month, are now due in
+    hours, because they can be. My experience — the asset I traded my twenties
+    for — feels nearly worthless. Twenty years of learning, and next to a
+    state-of-the-art model, all of it looks like a beginner's.
+  </p>
+  <p class="zh" lang="zh-CN">
+    公司里的风气也跟着变了。首席工程师的话要是和模型相左，大家心里都默默觉得，
+    多半是模型对。从前做一周、一个月的项目，经理现在要几个小时交出来，
+    因为确实交得出来。我的经验，是拿整个二十多岁换来的家底，如今几乎不值钱了。
+    学了二十年，摆在最先进的模型面前，全像是新手的东西。
+  </p>
+
+  <p>
+    So I started asking. What is the meaning of our lives? What was the point of
+    all those years of STEM, of computer science, if everything I know is
+    trivial to the machine? Being an ML engineer gets harder every day when
+    nearly all the output is the AI's, and my hours go to learning from the
+    model while standing guard over its execution — the human bottleneck, by
+    design.
+  </p>
+  <p class="zh" lang="zh-CN">
+    于是我开始问。人活一场，意义在哪儿？花那么多年念理工、做计算机，又图什么？
+    我会的，在机器眼里都不算事。机器学习工程师一天比一天难当：活儿几乎全由
+    AI 产出，我的时间多半用来向模型学习，再守在它执行的关口上当护栏。
+    人是瓶颈，这是设计好的。
+  </p>
+
+  <h2>what remains ours · 留在我们手里的</h2>
+
+  <p>
+    But here is where I landed tonight, and why I am writing instead of
+    sleeping. I started counting the places where humans are still better, and
+    the list ran longer than I expected.
+  </p>
+  <p class="zh" lang="zh-CN">
+    但今晚我想到了一个落脚处，这也是我此刻不睡、坐在这儿写的缘故。
+    我一条一条数，数人还在哪些地方比机器强。单子列下来，比我料想的长。
+  </p>
+
+  <p>
+    We have taste. Give two engineers the same model and the projects grow apart
+    — different shapes, different angles of attack — because somewhere in a
+    person is a preference that never came from training data.
+  </p>
+  <p class="zh" lang="zh-CN">
+    我们有品味。同一个模型，交给两个工程师，最后长出来的东西大不相同：
+    样子不一样，下手的角度也不一样。人心里有一种偏好，不是从训练数据里来的。
+  </p>
+
+  <p>
+    We have an absurdly good memory system — not large, but deep. Beyond
+    memorizing the way a machine does, we recall images, feelings, tastes,
+    stories, logic — the smell of a kitchen during an all-nighter. Almost
+    anything we can feel, we can keep some of. And working memory is a miracle
+    of its own: we move between tasks with no context engineering at all. We
+    simply know what we have been doing, and we can simply tell each other
+    about it.
+  </p>
+  <p class="zh" lang="zh-CN">
+    我们的记忆系统好得不像话。不大，但是深。除了像机器那样死记，
+    我们还记得住画面、心情、味道、故事和逻辑，记得住通宵那夜厨房里的气味。
+    凡是感受过的，多少都留得下来。工作记忆本身就是个奇迹：在几件事之间
+    换来换去，不需要任何「上下文工程」。手头一直在忙什么，自己清楚，
+    开口就能同人说起。
+  </p>
+
+  <p>
+    Most of all, we have feelings. We know whom we love and who loves us, and we
+    can go on passing that love along. No context window holds that.
+  </p>
+  <p class="zh" lang="zh-CN">
+    最要紧的是，我们有感情。知道自己爱着谁，谁爱着自己，
+    还能把这份爱继续传下去。再大的上下文窗口，也装不下这个。
+  </p>
+
+  <p>
+    Maybe one day — maybe very soon — a mediocre MLE like me will not be needed
+    at all. If that day comes, I want to be standing on the bright side of it:
+    living well, receiving God's gift of being human. What God worked into us is
+    stunning — this body, this intelligence, the fit between them. We barely
+    need to eat anything to keep it all running: the recall, the taste, the
+    love.
+  </p>
+  <p class="zh" lang="zh-CN">
+    也许有一天，也许很快，像我这样平平常常的机器学习工程师，就不再被需要了。
+    真到那天，我想站在亮的那一边：好好生活，领受上帝赐下的、身而为人的礼物。
+    上帝造在我们里面的东西实在精妙：这副身体，这份智能，还有两样彼此的配合。
+    我们几乎不用吃什么，就能让这一切一直运转：记忆，品味，还有爱。
+  </p>
+
+  <p>
+    I felt very weak today. But writing this down, I remembered 2018 — the
+    summer, the friends, that 92.9 in the movie class — and I noticed the
+    machine cannot feel any of it. That has to count for something. I think it
+    is everything.
+  </p>
+  <p class="zh" lang="zh-CN">
+    今天我很无力。可写到这里，想起了 2018 年：那个夏天，那些朋友，
+    还有电影课的那个 92.9。这些，机器一样也感受不到。这总归算点什么吧。
+    我想，这就是一切。
+  </p>
+
+  <p class="meta signoff">
+    — the bay area, california · wednesday, june 10, 2026, 1:20 am<br />
+    —— 加州湾区 · 2026 年 6 月 10 日，星期三，凌晨 1:20
+  </p>
+</BlogLayout>
+
+<style>
+  .zh {
+    color: #5f5f5f;
+    margin-top: -0.3em;
+    padding-left: 14px;
+    border-left: 2px solid #eceae4;
+  }
+
+  .signoff {
+    margin-top: 2em;
+  }
+</style>

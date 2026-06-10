@@ -1,0 +1,79 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const badgeSnippet = `<a href="https://du-xiang.com"><img src="https://du-xiang.com/standards/dux.gif" width="80" height="15" alt="du-xiang.com" /></a>`;
+
+const sections = [
+  {
+    heading: 'daily reads',
+    blurb: 'checked every morning in NetNewsWire, before email, as is proper.',
+    links: [
+      { name: 'daring fireball', url: 'https://daringfireball.net', note: 'john gruber on apple, typography, and being right slowly.' },
+      { name: 'kottke.org', url: 'https://kottke.org', note: 'the liberal arts degree of weblogs. running since 1998 and never once missed.' },
+      { name: 'a list apart', url: 'https://alistapart.com', note: 'for people who make websites. where the standards movement keeps its scripture.' },
+      { name: 'zeldman.com', url: 'https://www.zeldman.com', note: 'the orange beanie himself. we are all in his doctype.' },
+      { name: 'waxy.org', url: 'https://waxy.org', note: 'andy baio finds the good internet so you don’t have to.' },
+      { name: '43 folders', url: 'https://web.archive.org/web/2005/http://www.43folders.com/', note: 'merlin mann teaches you to be productive by reading about productivity instead of working. (via the wayback machine, which is fitting.)' },
+    ],
+  },
+  {
+    heading: 'tools of the trade',
+    blurb: 'the standard kit, c. 2005.',
+    links: [
+      { name: 'the w3c validator', url: 'https://validator.w3.org', note: 'the confessional booth. go and be judged.' },
+      { name: 'firefox', url: 'https://www.firefox.com', note: 'the browser with the fox. tell your IE6 friends; they suffer needlessly.' },
+      { name: 'del.icio.us', url: 'https://en.wikipedia.org/wiki/Delicious_(website)', note: 'social bookmarking with strategic punctuation. (now a wikipedia article, which is how all good things end.)' },
+      { name: 'flickr', url: 'https://www.flickr.com', note: 'photos with tags. loose ts, square crops, everyone’s cat.' },
+      { name: 'technorati', url: 'https://en.wikipedia.org/wiki/Technorati', note: 'the blogosphere’s scoreboard. my rank is 1,482,997 and climbing.' },
+    ],
+  },
+  {
+    heading: 'transmissions from the future',
+    blurb: 'links that should not exist yet. the archive does not judge.',
+    links: [
+      { name: 'my github', url: 'https://github.com/xd00099', note: 'where the source code lives. like sourceforge, but it sparks joy.' },
+      { name: 'my linkedin', url: 'https://www.linkedin.com/in/du-xiang', note: 'the professional profile. friendster for people with mortgages.' },
+      { name: 'claude.ai', url: 'https://claude.ai', note: 'a computer you can talk to, and it talks back, helpfully. see the essays for how deep this goes.' },
+    ],
+  },
+];
+---
+
+<Layout
+  title="blogroll · du xiang"
+  description="The blogroll of du-xiang.com: daily reads, tools of the trade c. 2005, and a few links from the future."
+>
+  <div id="single">
+    <h2>blogroll</h2>
+    <p>
+      A blogroll is a public act of friendship, which is why removing someone from
+      it was the gravest violence the 2005 internet knew. These links are offered
+      with full <abbr title="XHTML Friends Network">XFN</abbr> sincerity
+      (<code>rel="friend met admired"</code>, the works).
+    </p>
+
+    {sections.map((s) => (
+      <div>
+        <h3>{s.heading}</h3>
+        <p class="meta">{s.blurb}</p>
+        <ul>
+          {s.links.map((l) => (
+            <li>
+              <a href={l.url} target="_blank" rel="noopener noreferrer">{l.name}</a> &mdash; {l.note}
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+
+    <h3 id="linktome">link to me</h3>
+    <p>
+      Should you wish to add this site to your own blogroll &mdash; and the
+      sidebar accepts this honor humbly &mdash; there is a button, 80 by 15
+      pixels, as the standards (the social ones) dictate:
+    </p>
+    <p><img src="/standards/dux.gif" width="80" height="15" alt="du-xiang.com" /></p>
+    <textarea rows="3" cols="70" readonly>{badgeSnippet}</textarea>
+    <p class="meta">together we will build the web, one 80&times;15 button at a time.</p>
+  </div>
+</Layout>

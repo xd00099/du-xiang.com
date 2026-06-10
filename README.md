@@ -1,46 +1,50 @@
-# Astro Starter Kit: Basics
+# du xiang · personal site
 
-```sh
-npm create astro@latest -- --template basics
-```
+The personal site of Du Xiang, currently styled as **2003–2007 web standards
+minimalism**: a white 760px page on warm gray, Georgia prose, Verdana metadata,
+dotted borders, float-based layout, 80×15 antipixel badges, a blogroll, a
+colophon, and a hand-coded RSS 2.0 feed. Built with [Astro](https://astro.build).
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+(The previous incarnation was a faithful 1999 GeoCities cyber-home — starfield,
+MIDI jukebox, guestbook — and before that a 2026 dark-mode portfolio. The git
+history remembers everything.)
 
-## 🚀 Project Structure
+## Pages
 
-Inside of your Astro project, you'll see the following folders and files:
+| Route | What's there |
+| :--- | :--- |
+| `/` | Front page: intro, recent essays, brief timeline, sidebar |
+| `/blog` | The essay archive, grouped by year |
+| `/blog/<slug>` | Long-form essays (technical + personal, one bilingual) |
+| `/links` | The blogroll + 80×15 "link to me" button |
+| `/colophon` | The obligatory page about the fonts |
+| `/rss.xml` | Full-text RSS 2.0 feed |
 
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
-└── package.json
-```
+## Generated assets
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+- `scripts/make_2005_badges.py` — antipixel badges, XML chiclet, feed icon → `public/standards/`
+- `scripts/make_retro_gifs.py` — the 1999 GIF set (starfield, construction banner, counter digits) → `public/retro/` (kept for posterity; the colophon links to it)
 
-## 🧞 Commands
+## Commands
 
-All commands are run from the root of the project, from a terminal:
+| Command | Action |
+| :--- | :--- |
+| `npm install` | Installs dependencies |
+| `npm run dev` | Starts local dev server at `localhost:4321` |
+| `npm run build` | Build the production site to `./dist/` |
+| `npm run preview` | Preview the build locally |
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+Deploys to GitHub Pages automatically on push to `master`.
 
-## 👀 Want to learn more?
+## Gotchas (learned the hard way)
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+The Astro compiler's HTML parser has sharp edges around old-school markup:
+
+- A `<textarea>` with literal text content inside a `<table>` makes the compiler
+  drop the table's closing tag (everything after gets swallowed into the table).
+  Fix: use expression content — `<textarea>{snippet}</textarea>`.
+- An expression that yields `<div>`s as the direct content of a *static* `<td>`
+  does the same. Fix: have expressions yield whole `<tr>` rows instead.
+- Don't nest `<center>` inside `<center>`. Use `<div align="center">` inside tables.
+- `new Date('YYYY-MM-DD')` parses as UTC midnight and renders the previous day
+  in US timezones. Parse date-only strings at noon.
